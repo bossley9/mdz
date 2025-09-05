@@ -47,3 +47,33 @@ pub fn parseDjot(r: *Reader, w: *Writer) ParseDjotError!usize {
 test "basic test" {
     try th.expectParseDjot("Hello", "Line: Hello\n");
 }
+
+const wasm_page_size = 1024 * 64;
+
+/// Given a Djot input string address, parse and write the corresponding
+/// HTML output string to memory, then return the length. An error is
+/// returned as the string "error.message", where `message` represents
+/// the error message.
+export fn parseDjotWasm(input_addr: [*]u8, input_len: usize) usize {
+    if (input_len == 0) {
+        @branchHint(.cold);
+        return 0;
+    }
+
+    var reader = Reader.fixed(input_addr[0..input_len]);
+    var output: [wasm_page_size]u8 = undefined;
+    var writer = Writer.fixed(&output);
+
+    const len = parseDjot(&reader, &writer) catch |err| blk: {
+        writer.print("{any}", .{err}) catch {};
+        writer.flush() catch {};
+        break :blk writer.end;
+    };
+
+    // write result to contiguous memory, overwriting input
+    var i: usize = 0;
+    while (i < len) : (i += 1) {
+        input_addr[i] = output[i];
+    }
+    return len;
+}

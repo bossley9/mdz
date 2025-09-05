@@ -2,6 +2,7 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) !void {
     const main_path = b.path("./src/main.zig");
+    const mod_path = b.path("./src/root.zig");
     const target = b.standardTargetOptions(.{});
     const version = try std.SemanticVersion.parse("0.1.0");
 
@@ -17,6 +18,26 @@ pub fn build(b: *std.Build) !void {
         .version = version,
     });
     b.installArtifact(exe);
+
+    // wasm
+    const wasm_mod = b.createModule(.{
+        .root_source_file = mod_path,
+        .target = b.resolveTargetQuery(.{
+            .cpu_arch = .wasm32,
+            .os_tag = .freestanding,
+        }),
+        .optimize = .ReleaseFast,
+    });
+    const wasm = b.addExecutable(.{
+        .name = "zigjot",
+        .root_module = wasm_mod,
+        .version = version,
+    });
+    wasm.rdynamic = true;
+    wasm.entry = .disabled;
+    const wasm_exe = b.addInstallArtifact(wasm, .{});
+    const wasm_step = b.step("wasm", "Build for WebAssembly");
+    wasm_step.dependOn(&wasm_exe.step);
 
     // run
     const debug_mod = b.createModule(.{
@@ -42,4 +63,10 @@ pub fn build(b: *std.Build) !void {
     const test_exe = b.addTest(.{ .root_module = debug_mod });
     const test_cmd = b.addRunArtifact(test_exe);
     test_step.dependOn(&test_cmd.step);
+
+    // testw
+    const wasm_test_cmd = b.addSystemCommand(&.{ "deno", "test", "--allow-read" });
+    wasm_test_cmd.step.dependOn(&wasm_exe.step);
+    const testwasm_step = b.step("testw", "Run WASM tests (requires Deno)");
+    testwasm_step.dependOn(&wasm_test_cmd.step);
 }
