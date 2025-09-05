@@ -1,9 +1,49 @@
 const std = @import("std");
+const p = @import("./djot/parsers.zig");
+const th = @import("./djot/test_helpers.zig");
 
-pub fn parseDjot() []const u8 {
-    return "Hello";
+const Reader = std.io.Reader;
+const Writer = std.io.Writer;
+
+/// Custom implementation of `std.io.Reader.takeDelimiterExclusive` to
+/// account for different line endings (LF/CRLF) and optional EOF LF.
+fn takeNewlineExclusive(r: *Reader) Reader.DelimiterError![]u8 {
+    const result = r.peekDelimiterInclusive('\n') catch |err| switch (err) {
+        Reader.DelimiterError.EndOfStream, Reader.DelimiterError.StreamTooLong => {
+            const remaining = r.buffer[r.seek..r.end];
+            if (remaining.len == 0) return error.EndOfStream;
+            r.toss(remaining.len);
+            return remaining;
+        },
+        else => |e| return e,
+    };
+    r.toss(result.len);
+
+    if (result.len > 1 and result[result.len - 2] == '\r') {
+        @branchHint(.cold); // stop using Windows please!
+        return result[0 .. result.len - 2];
+    }
+
+    return result[0 .. result.len - 1];
+}
+
+const ParseDjotError = Reader.DelimiterError || Writer.Error;
+
+/// Given a Djot input reader and an output writer, parse and write the
+/// corresponding HTML string to the writer, then return the number of
+/// bytes written.
+pub fn parseDjot(r: *Reader, w: *Writer) ParseDjotError!usize {
+    while (takeNewlineExclusive(r)) |line| {
+        try p.parseLine(line, w);
+    } else |err| switch (err) {
+        Reader.DelimiterError.EndOfStream => {}, // end of input
+        else => return err,
+    }
+
+    try w.flush();
+    return w.end;
 }
 
 test "basic test" {
-    try std.testing.expect(std.mem.eql(u8, parseDjot(), "Hello"));
+    try th.expectParseDjot("Hello", "Line: Hello\n");
 }
