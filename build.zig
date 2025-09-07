@@ -51,16 +51,21 @@ pub fn build(b: *std.Build) !void {
         .root_module = debug_mod,
         .version = version,
     });
+    const debug_exe_art = b.addInstallArtifact(debug_exe, .{});
     const run_debug_cmd = b.addRunArtifact(debug_exe);
     if (b.args) |args| {
         run_debug_cmd.addArgs(args);
     }
     const run_debug_step = b.step("run", "Run the debug app");
     run_debug_step.dependOn(&run_debug_cmd.step);
+    run_debug_step.dependOn(&debug_exe_art.step);
 
     // test
     const test_step = b.step("test", "Run tests");
-    const test_exe = b.addTest(.{ .root_module = debug_mod });
+    const test_exe = b.addTest(.{
+        .root_module = debug_mod,
+        .filters = if (b.args) |args| &.{args[0]} else &.{},
+    });
     const test_cmd = b.addRunArtifact(test_exe);
     test_step.dependOn(&test_cmd.step);
 

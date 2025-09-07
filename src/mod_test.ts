@@ -9,6 +9,6 @@ function expectParseDjot(input: string, expected: string) {
 
 Deno.test("instantiates the WASM module from JS", () => {
   const input = "Hello, world!";
-  const expected = "Line: Hello, world!\n";
+  const expected = "<p>Hello, world!</p>";
   expectParseDjot(input, expected);
 });
