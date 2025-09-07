@@ -12,11 +12,11 @@ const ParseDjotError = std.mem.Allocator.Error || std.io.Writer.Error;
 pub fn parseDjot(input: []u8, w: *std.io.Writer) ParseDjotError!usize {
     const allocator = std.heap.page_allocator;
     var document = ast.Document{
-        .openStack = try std.ArrayList(ast.Block).initCapacity(allocator, 12),
+        .open_stack = try std.ArrayList(ast.Block).initCapacity(allocator, 12),
         .content = try std.ArrayList(ast.Block).initCapacity(allocator, 0),
     };
     defer {
-        document.openStack.deinit(allocator);
+        document.open_stack.deinit(allocator);
         for (document.content.items) |child| switch (child) {
             .paragraph => {},
             .block_quote => {

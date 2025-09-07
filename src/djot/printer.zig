@@ -7,7 +7,7 @@ fn printBlock(block: *ast.Block, input: []u8, w: *Writer, newline: bool) Writer.
     switch (block.*) {
         .paragraph => |*_block| {
             try w.print("{s}<p>", .{if (newline) "\n" else ""});
-            const slice = input[_block.inlineStart.._block.inlineEnd];
+            const slice = _block.content.items;
 
             // valgrind freaks out with strings > 63 bytes
             var i: usize = 0;

@@ -1,11 +1,7 @@
 const std = @import("std");
 
-pub const Paragraph = struct {
-    inlineStart: usize,
-    inlineEnd: usize,
-};
-
-pub const BlockQuote = struct {
+pub const Document = struct {
+    open_stack: std.ArrayList(Block),
     content: std.ArrayList(Block),
 };
 
@@ -14,7 +10,10 @@ pub const Block = union(enum) {
     block_quote: BlockQuote,
 };
 
-pub const Document = struct {
-    openStack: std.ArrayList(Block),
+pub const Paragraph = struct {
+    content: std.ArrayList(u8),
+};
+
+pub const BlockQuote = struct {
     content: std.ArrayList(Block),
 };
