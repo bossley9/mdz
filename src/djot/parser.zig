@@ -3,20 +3,137 @@ const ast = @import("./ast.zig");
 const th = @import("./test_helpers.zig");
 
 const Allocator = std.mem.Allocator;
+const Reader = std.io.Reader;
 const Writer = std.io.Writer;
-const ParserError = Allocator.Error;
 
-fn pushOpenParagraph(allocator: Allocator, doc: *ast.Document, line: []u8) ParserError!void {
-    var content = try std.ArrayList(u8).initCapacity(allocator, 0);
-    for (line) |c| {
-        try content.append(allocator, c);
-    }
-    const paragraph = ast.Block{
-        .paragraph = ast.Paragraph{
-            .content = content,
+const ParserError = Reader.DelimiterError || Allocator.Error;
+
+fn closeChildBlocks(block: *ast.Block) void {
+    switch (block.tag) {
+        .paragraph => {},
+        else => {
+            for (block.content.?.items) |*child| {
+                child.open = false;
+                closeChildBlocks(child);
+            }
         },
+    }
+}
+
+/// Recursively update a block and its descendants based on the
+/// provided nput line.
+fn parseBlock(
+    allocator: Allocator,
+    line: []u8,
+    block: *ast.Block,
+) ParserError!void {
+    if (line.len == 0) { // blank line
+        closeChildBlocks(block);
+        return;
+    }
+
+    // open blocks
+    if (block.content) |*content| {
+        if (content.items.len > 0) {
+            var child = &content.items[content.items.len - 1];
+            if (child.open) {
+                switch (child.tag) {
+                    .document => unreachable,
+                    .paragraph => {
+                        try child.inlines.?.append(allocator, '\n');
+                        for (line) |c| {
+                            try child.inlines.?.append(allocator, c);
+                        }
+                    },
+                    .block_quote => {
+                        const inner_line =
+                            if (line.len > 1 and line[0] == '>' and line[1] == ' ')
+                                line[2..]
+                            else
+                                line;
+                        try parseBlock(allocator, inner_line, child);
+                    },
+                }
+                return;
+            }
+        }
+    }
+
+    // new blocks
+    if (line[0] == '>' and (line.len == 1 or line[1] == ' ')) { // blockquote
+        var block_quote = try ast.Block.init(allocator, .block_quote);
+        const inner_line = if (line.len == 1) line[1..] else line[2..];
+
+        try parseBlock(allocator, inner_line, &block_quote);
+
+        try block.content.?.append(allocator, block_quote);
+    } else { // paragraph
+        var para = try ast.Block.init(allocator, .paragraph);
+
+        for (line) |c| {
+            try para.inlines.?.append(allocator, c);
+        }
+
+        try block.content.?.append(allocator, para);
+    }
+}
+
+/// Custom implementation of `std.io.Reader.takeDelimiterExclusive` to
+/// account for different line endings (LF/CRLF) and optional EOF LF.
+fn takeNewlineExclusive(r: *Reader) Reader.DelimiterError![]u8 {
+    const result = r.peekDelimiterInclusive('\n') catch |err| switch (err) {
+        Reader.DelimiterError.EndOfStream, Reader.DelimiterError.StreamTooLong => {
+            const remaining = r.buffer[r.seek..r.end];
+            if (remaining.len == 0) return error.EndOfStream;
+            r.toss(remaining.len);
+            return remaining;
+        },
+        else => |e| return e,
     };
-    try doc.open_stack.append(allocator, paragraph);
+    r.toss(result.len);
+
+    if (result.len > 1 and result[result.len - 2] == '\r') {
+        @branchHint(.cold); // stop using Windows please!
+        return result[0 .. result.len - 2];
+    }
+
+    return result[0 .. result.len - 1];
+}
+
+/// Construct a block document from the input reader and write it into
+/// the provided document pointer.
+pub fn parseDocument(
+    allocator: Allocator,
+    reader: *Reader,
+    document: *ast.Block,
+) ParserError!void {
+    while (takeNewlineExclusive(reader)) |line| {
+        try parseBlock(allocator, line, document);
+    } else |err| switch (err) {
+        Reader.DelimiterError.EndOfStream => {}, // end of input
+        else => return err,
+    }
+}
+
+test "block closing and opening" {
+    try th.expectParseDjot(
+        \\> test
+        \\lazy continuation
+        \\
+        \\>
+        \\> para 1
+        \\> 
+        \\> para 2
+    ,
+        \\<blockquote>
+        \\<p>test
+        \\lazy continuation</p>
+        \\</blockquote>
+        \\<blockquote>
+        \\<p>para 1</p>
+        \\<p>para 2</p>
+        \\</blockquote>
+    );
 }
 
 test "paragraph single" {
@@ -49,74 +166,6 @@ test "paragraph lazy continuation" {
     );
 }
 
-fn closeOpenBlocks(allocator: Allocator, doc: *ast.Document) ParserError!void {
-    var pending_block = doc.open_stack.pop();
-    while (doc.open_stack.items.len > 0) {
-        var parent = doc.open_stack.pop().?;
-
-        switch (parent) {
-            .block_quote => |*_parent| {
-                try _parent.content.append(allocator, pending_block.?);
-                pending_block = parent;
-            },
-            .paragraph => {},
-        }
-    }
-    if (pending_block) |block| {
-        try doc.content.append(allocator, block);
-    }
-}
-
-pub fn parseDocument(allocator: Allocator, input: []u8, doc: *ast.Document) ParserError!void {
-    var line_start: usize = 0;
-    var pos: usize = 0;
-    while (pos <= input.len) : (pos += 1) {
-        if (pos == input.len or input[pos] == '\n') {
-            const line_end = if (pos - 1 > 0 and input[pos - 1] == '\r') blk: {
-                @branchHint(.cold); // stop using Windows please!
-                break :blk pos - 1;
-            } else pos;
-            const line = input[line_start..line_end];
-
-            if (line.len == 0) { // blank line
-                try closeOpenBlocks(allocator, doc);
-            } else if (line[0] == '>' and (line.len == 1 or line[1] == ' ')) { // blockquote
-                const content = try std.ArrayList(ast.Block).initCapacity(allocator, 0);
-                const blockQuote = ast.Block{
-                    .block_quote = ast.BlockQuote{
-                        .content = content,
-                    },
-                };
-                try doc.open_stack.append(allocator, blockQuote);
-
-                if (line.len > 2) {
-                    try pushOpenParagraph(allocator, doc, line[2..]);
-                }
-            } else { // paragraph
-                if (doc.open_stack.items.len > 0) {
-                    switch (doc.open_stack.items[doc.open_stack.items.len - 1]) {
-                        .paragraph => |*para| {
-                            try para.content.append(allocator, '\n');
-                            for (line) |c| {
-                                try para.content.append(allocator, c);
-                            }
-                        },
-                        else => {
-                            try pushOpenParagraph(allocator, doc, line);
-                        },
-                    }
-                } else {
-                    try pushOpenParagraph(allocator, doc, line);
-                }
-            }
-
-            line_start = pos + 1;
-        }
-    }
-
-    try closeOpenBlocks(allocator, doc);
-}
-
 test "blockquote empty" {
     try th.expectParseDjot(
         \\>
@@ -141,6 +190,18 @@ test "blockquote single line" {
     ,
         \\<blockquote>
         \\<p>This is a block quote.</p>
+        \\</blockquote>
+    );
+}
+
+test "blockquote lazy continuation" {
+    try th.expectParseDjot(
+        \\> Hello,
+        \\ world!
+    ,
+        \\<blockquote>
+        \\<p>Hello,
+        \\ world!</p>
         \\</blockquote>
     );
 }

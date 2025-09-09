@@ -4,32 +4,31 @@ const parser = @import("./djot/parser.zig");
 const printer = @import("./djot/printer.zig");
 const th = @import("./djot/test_helpers.zig");
 
-const ParseDjotError = std.mem.Allocator.Error || std.io.Writer.Error;
+const ParseDjotError = std.io.Reader.DelimiterError || std.mem.Allocator.Error || std.io.Writer.Error;
 
-/// Given a Djot input string and an output writer, parse and write the
+/// Given a Djot input reader and an output writer, parse and write the
 /// corresponding HTML string to the writer, then return the number of
 /// bytes written.
-pub fn parseDjot(input: []u8, w: *std.io.Writer) ParseDjotError!usize {
+pub fn parseDjot(reader: *std.io.Reader, w: *std.io.Writer) ParseDjotError!usize {
     const allocator = std.heap.page_allocator;
-    var document = ast.Document{
-        .open_stack = try std.ArrayList(ast.Block).initCapacity(allocator, 12),
-        .content = try std.ArrayList(ast.Block).initCapacity(allocator, 0),
-    };
+    var document = try ast.Block.init(allocator, .document);
     defer {
-        document.open_stack.deinit(allocator);
-        for (document.content.items) |child| switch (child) {
-            .paragraph => {},
+        for (document.content.?.items) |*child| switch (child.*.tag) {
+            .document => unreachable,
+            .paragraph => {
+                child.inlines.?.deinit(allocator);
+            },
             .block_quote => {
-                var content = child.block_quote.content;
-                content.deinit(allocator);
+                child.content.?.deinit(allocator);
             },
         };
-        document.content.deinit(allocator);
+        document.content.?.deinit(allocator);
     }
 
-    try parser.parseDocument(allocator, input, &document);
+    try parser.parseDocument(allocator, reader, &document);
 
-    try printer.printDocument(&document, input, w);
+    try printer.printDocument(&document, w);
+    w.undo(1); // remove final newline from printed output
 
     try w.flush();
     return w.end;
@@ -46,10 +45,12 @@ export fn parseDjotWasm(input_addr: [*]u8, input_len: usize) usize {
     }
 
     const input = input_addr[0..input_len];
+    var reader = std.io.Reader.fixed(input);
+
     var output: [1024 * 64]u8 = undefined; // wasm page size
     var writer = std.io.Writer.fixed(&output);
 
-    const len = parseDjot(input, &writer) catch |err| blk: {
+    const len = parseDjot(&reader, &writer) catch |err| blk: {
         writer.print("{any}", .{err}) catch {};
         writer.flush() catch {};
         break :blk writer.end;
