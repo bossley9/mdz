@@ -2,7 +2,6 @@ const std = @import("std");
 const ast = @import("./djot/ast.zig");
 const parser = @import("./djot/parser.zig");
 const printer = @import("./djot/printer.zig");
-const th = @import("./djot/test_helpers.zig");
 
 const ParseDjotError = std.io.Reader.DelimiterError || std.mem.Allocator.Error || std.io.Writer.Error;
 
@@ -15,7 +14,7 @@ pub fn parseDjot(reader: *std.io.Reader, w: *std.io.Writer) ParseDjotError!usize
     defer {
         for (document.content.?.items) |*child| switch (child.*.tag) {
             .document => unreachable,
-            .paragraph => {
+            .heading, .paragraph => {
                 child.inlines.?.deinit(allocator);
             },
             .block_quote => {
@@ -28,7 +27,9 @@ pub fn parseDjot(reader: *std.io.Reader, w: *std.io.Writer) ParseDjotError!usize
     try parser.parseDocument(allocator, reader, &document);
 
     try printer.printDocument(&document, w);
-    w.undo(1); // remove final newline from printed output
+    if (w.end > 0) {
+        w.undo(1); // remove final newline from printed output
+    }
 
     try w.flush();
     return w.end;
@@ -47,7 +48,7 @@ export fn parseDjotWasm(input_addr: [*]u8, input_len: usize) usize {
     const input = input_addr[0..input_len];
     var reader = std.io.Reader.fixed(input);
 
-    var output: [1024 * 64]u8 = undefined; // wasm page size
+    var output: [std.wasm.page_size]u8 = undefined;
     var writer = std.io.Writer.fixed(&output);
 
     const len = parseDjot(&reader, &writer) catch |err| blk: {

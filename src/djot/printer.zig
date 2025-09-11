@@ -10,6 +10,13 @@ pub fn printDocument(block: *ast.Block, w: *Writer) Writer.Error!void {
                 try printDocument(child, w);
             }
         },
+        .heading => {
+            try w.print("<h{d}>", .{block.level});
+            for (block.inlines.?.items) |c| {
+                try w.print("{c}", .{c});
+            }
+            try w.print("</h{d}>\n", .{block.level});
+        },
         .paragraph => {
             try w.print("<p>", .{});
             // Valgrind panics when printing char arrays

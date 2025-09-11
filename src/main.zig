@@ -1,5 +1,9 @@
 const std = @import("std");
 const mod = @import("./root.zig");
+comptime {
+    // include unreferenced tests
+    _ = @import("./djot/specification.zig");
+}
 
 pub fn main() !void {
     var args = try std.process.argsWithAllocator(std.heap.page_allocator);
@@ -11,10 +15,10 @@ pub fn main() !void {
     const file = try std.fs.openFileAbsolute(path, .{});
     defer file.close();
 
-    var reader_buf: [1024 * 64]u8 = undefined;
+    var reader_buf: [std.wasm.page_size]u8 = undefined;
     var file_reader = file.reader(&reader_buf);
 
-    var writer_buf: [1024]u8 = undefined;
+    var writer_buf: [std.wasm.page_size / 4]u8 = undefined;
     var stdout_writer = std.fs.File.stdout().writer(&writer_buf);
 
     _ = try mod.parseDjot(&file_reader.interface, &stdout_writer.interface);

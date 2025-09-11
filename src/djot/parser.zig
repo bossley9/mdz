@@ -8,9 +8,16 @@ const Writer = std.io.Writer;
 
 const ParserError = Reader.DelimiterError || Allocator.Error;
 
+fn appendHeadingBlock(allocator: Allocator, block: *ast.Block, line: []u8, level: u3) ParserError!void {
+    var heading = try ast.Block.init(allocator, .heading);
+    for (line[level + 1 ..]) |c| try heading.inlines.?.append(allocator, c);
+    heading.level = level;
+    try block.content.?.append(allocator, heading);
+}
+
 fn closeChildBlocks(block: *ast.Block) void {
     switch (block.tag) {
-        .paragraph => {},
+        .heading, .paragraph => {},
         else => {
             for (block.content.?.items) |*child| {
                 child.open = false;
@@ -39,6 +46,10 @@ fn parseBlock(
             if (child.open) {
                 switch (child.tag) {
                     .document => unreachable,
+                    .heading => {
+                        child.open = false;
+                        try parseBlock(allocator, line, block);
+                    },
                     .paragraph => {
                         try child.inlines.?.append(allocator, '\n');
                         for (line) |c| {
@@ -60,7 +71,19 @@ fn parseBlock(
     }
 
     // new blocks
-    if (line[0] == '>' and (line.len == 1 or line[1] == ' ')) { // blockquote
+    if (line.len > 1 and std.mem.eql(u8, line[0..2], "# ")) { // heading 1
+        try appendHeadingBlock(allocator, block, line, 1);
+    } else if (line.len > 2 and std.mem.eql(u8, line[0..3], "## ")) { // heading 2
+        try appendHeadingBlock(allocator, block, line, 2);
+    } else if (line.len > 3 and std.mem.eql(u8, line[0..4], "### ")) { // heading 3
+        try appendHeadingBlock(allocator, block, line, 3);
+    } else if (line.len > 4 and std.mem.eql(u8, line[0..5], "#### ")) { // heading 4
+        try appendHeadingBlock(allocator, block, line, 4);
+    } else if (line.len > 5 and std.mem.eql(u8, line[0..6], "##### ")) { // heading 5
+        try appendHeadingBlock(allocator, block, line, 5);
+    } else if (line.len > 6 and std.mem.eql(u8, line[0..7], "###### ")) { // heading 6
+        try appendHeadingBlock(allocator, block, line, 6);
+    } else if (line[0] == '>' and (line.len == 1 or line[1] == ' ')) { // blockquote
         var block_quote = try ast.Block.init(allocator, .block_quote);
         const inner_line = if (line.len == 1) line[1..] else line[2..];
 
