@@ -1,3 +1,3 @@
-# zigjot
+# Refined Markdown (RMD)
 
-A Zig [djot](https://djot.net) parser implementation for both CLI and WASM
+An improved Markdown spec implemented in Zig for both CLI and WASM

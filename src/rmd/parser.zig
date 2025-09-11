@@ -139,7 +139,7 @@ pub fn parseDocument(
 }
 
 test "block closing and opening" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\> test
         \\lazy continuation
         \\
@@ -160,11 +160,11 @@ test "block closing and opening" {
 }
 
 test "paragraph single" {
-    try th.expectParseDjot("Hello, world!", "<p>Hello, world!</p>");
+    try th.expectParseRMD("Hello, world!", "<p>Hello, world!</p>");
 }
 
 test "paragraph multiple" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\Hello, world!
         \\
         \\What is your name?
@@ -175,7 +175,7 @@ test "paragraph multiple" {
 }
 
 test "paragraph lazy continuation" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\aaa
         \\bbb
         \\
@@ -190,7 +190,7 @@ test "paragraph lazy continuation" {
 }
 
 test "blockquote empty" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\>
     ,
         \\<blockquote>
@@ -199,7 +199,7 @@ test "blockquote empty" {
 }
 
 test "blockquote empty with space" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\> 
     ,
         \\<blockquote>
@@ -208,7 +208,7 @@ test "blockquote empty with space" {
 }
 
 test "blockquote single line" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\> This is a block quote.
     ,
         \\<blockquote>
@@ -218,7 +218,7 @@ test "blockquote single line" {
 }
 
 test "blockquote lazy continuation" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\> Hello,
         \\ world!
     ,

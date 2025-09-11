@@ -1,14 +1,14 @@
 const std = @import("std");
-const ast = @import("./djot/ast.zig");
-const parser = @import("./djot/parser.zig");
-const printer = @import("./djot/printer.zig");
+const ast = @import("./rmd/ast.zig");
+const parser = @import("./rmd/parser.zig");
+const printer = @import("./rmd/printer.zig");
 
-const ParseDjotError = std.io.Reader.DelimiterError || std.mem.Allocator.Error || std.io.Writer.Error;
+const ParseRMDError = std.io.Reader.DelimiterError || std.mem.Allocator.Error || std.io.Writer.Error;
 
-/// Given a Djot input reader and an output writer, parse and write the
+/// Given a RMD input reader and an output writer, parse and write the
 /// corresponding HTML string to the writer, then return the number of
 /// bytes written.
-pub fn parseDjot(reader: *std.io.Reader, w: *std.io.Writer) ParseDjotError!usize {
+pub fn parseRMD(reader: *std.io.Reader, w: *std.io.Writer) ParseRMDError!usize {
     const allocator = std.heap.page_allocator;
     var document = try ast.Block.init(allocator, .document);
     defer {
@@ -35,11 +35,11 @@ pub fn parseDjot(reader: *std.io.Reader, w: *std.io.Writer) ParseDjotError!usize
     return w.end;
 }
 
-/// Given a Djot input string address, parse and write the corresponding
+/// Given a RMD input string address, parse and write the corresponding
 /// HTML output string to memory, then return the length. An error is
 /// returned as the string "error.message", where `message` represents
 /// the error message.
-export fn parseDjotWasm(input_addr: [*]u8, input_len: usize) usize {
+export fn parseRMDWasm(input_addr: [*]u8, input_len: usize) usize {
     if (input_len == 0) {
         @branchHint(.cold);
         return 0;
@@ -51,7 +51,7 @@ export fn parseDjotWasm(input_addr: [*]u8, input_len: usize) usize {
     var output: [std.wasm.page_size]u8 = undefined;
     var writer = std.io.Writer.fixed(&output);
 
-    const len = parseDjot(&reader, &writer) catch |err| blk: {
+    const len = parseRMD(&reader, &writer) catch |err| blk: {
         writer.print("{any}", .{err}) catch {};
         writer.flush() catch {};
         break :blk writer.end;

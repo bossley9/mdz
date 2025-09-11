@@ -1,7 +1,7 @@
 const th = @import("./test_helpers.zig");
 
 test "4.2 62" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\# foo
         \\## foo
         \\### foo
@@ -19,7 +19,7 @@ test "4.2 62" {
 }
 
 test "4.2 63" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\####### foo
     ,
         \\<p>####### foo</p>
@@ -27,7 +27,7 @@ test "4.2 63" {
 }
 
 test "4.2 64" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\#5 bolt
         \\
         \\#hashtag
@@ -39,7 +39,7 @@ test "4.2 64" {
 
 // TODO implement inlines
 // test "4.2 65" {
-//     try th.expectParseDjot(
+//     try th.expectParseRMD(
 //         \\\## foo
 //     ,
 //         \\<p>## foo</p>
@@ -48,7 +48,7 @@ test "4.2 64" {
 
 // TODO implement inlines
 // test "4.2 66" {
-//     try th.expectParseDjot(
+//     try th.expectParseRMD(
 //         \\\# foo *bar* \*baz\*
 //     ,
 //         \\<h1>foo <em>bar</em> *baz*</h1>
@@ -56,7 +56,7 @@ test "4.2 64" {
 // }
 
 test "4.2 68-2" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\ ### foo
     ,
         \\<p> ### foo</p>
@@ -64,7 +64,7 @@ test "4.2 68-2" {
 }
 
 test "4.2 70-2" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\foo
         \\    # bar
     ,
@@ -74,7 +74,7 @@ test "4.2 70-2" {
 }
 
 test "4.2 74" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\### foo ### b
     ,
         \\<h3>foo ### b</h3>
@@ -82,7 +82,7 @@ test "4.2 74" {
 }
 
 test "4.2 75" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\# foo#
     ,
         \\<h1>foo#</h1>
@@ -91,7 +91,7 @@ test "4.2 75" {
 
 // TODO implement inlines
 // test "4.2 76" {
-//     try th.expectParseDjot(
+//     try th.expectParseRMD(
 //         \\### foo \###
 //         \\## foo #\##
 //         \\# foo \#
@@ -104,7 +104,7 @@ test "4.2 75" {
 
 // TODO implement thematic breaks
 // test "4.2 77-2" {
-//     try th.expectParseDjot(
+//     try th.expectParseRMD(
 //         \\---
 //         \\
 //         \\## foo
@@ -118,7 +118,7 @@ test "4.2 75" {
 // }
 
 test "4.2 78-2" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\Foo bar
         \\# baz
         \\Bar foo
@@ -130,7 +130,7 @@ test "4.2 78-2" {
 }
 
 test "4.2 79" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\## 
         \\# 
         \\### 
@@ -142,7 +142,7 @@ test "4.2 79" {
 }
 
 test "4.2 79-2" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\# Hello
         \\world!
     ,
@@ -152,7 +152,7 @@ test "4.2 79-2" {
 }
 
 test "4.8 219" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\aaa
         \\
         \\bbb
@@ -163,7 +163,7 @@ test "4.8 219" {
 }
 
 test "4.8 220" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\aaa
         \\bbb
         \\
@@ -178,7 +178,7 @@ test "4.8 220" {
 }
 
 test "4.8 221" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\aaa
         \\
         \\
@@ -191,7 +191,7 @@ test "4.8 221" {
 }
 
 test "4.8 222-2" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\  aaa
         \\ bbb
     ,
@@ -201,7 +201,7 @@ test "4.8 222-2" {
 }
 
 test "4.9 227-2" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\
         \\
         \\aaa
@@ -217,7 +217,7 @@ test "4.9 227-2" {
 }
 
 test "4.9 227-3" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\  
         \\
         \\aaa
@@ -236,7 +236,7 @@ test "4.9 227-3" {
 }
 
 test "5.1 228" {
-    try th.expectParseDjot(
+    try th.expectParseRMD(
         \\> # Foo
         \\> bar
         \\> baz

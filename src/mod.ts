@@ -1,21 +1,21 @@
 // replace this with fetch() on a server
 const source = new Response(
-  await Deno.readFile("./zig-out/bin/zigjot.wasm"),
+  await Deno.readFile("./zig-out/bin/rmd.wasm"),
   { headers: { "Content-type": "application/wasm" } },
 );
 const wasmMod = await WebAssembly.instantiateStreaming(source);
 
-type ParseDjot = (startingMemAddr: 0, memoryLen: number) => number;
+type ParseRMD = (startingMemAddr: 0, memoryLen: number) => number;
 
 const errorPrefix = "error.";
 
 /**
- * Given a Djot input string, parse and return the corresponding HTML
+ * Given a RMD input string, parse and return the corresponding HTML
  * string. Errors can be thrown.
  */
-export function parseDjot(input: string) {
+export function parseRMD(input: string) {
   const memory = wasmMod.instance.exports.memory as WebAssembly.Memory;
-  const parseDjotWasm = wasmMod.instance.exports.parseDjotWasm as ParseDjot;
+  const parseRMDWasm = wasmMod.instance.exports.parseRMDWasm as ParseRMD;
 
   // encode input into memory
   const memoryArr = new Uint8Array(memory.buffer);
@@ -24,7 +24,7 @@ export function parseDjot(input: string) {
     memoryArr,
   );
 
-  const outputLength = parseDjotWasm(0, inputLength);
+  const outputLength = parseRMDWasm(0, inputLength);
 
   // decode output from memory
   const outputArr = new Uint8Array(memory.buffer, 0, outputLength);

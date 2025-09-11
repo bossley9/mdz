@@ -2,7 +2,7 @@ const std = @import("std");
 const mod = @import("./root.zig");
 comptime {
     // include unreferenced tests
-    _ = @import("./djot/specification.zig");
+    _ = @import("./rmd/specification.zig");
 }
 
 pub fn main() !void {
@@ -21,7 +21,7 @@ pub fn main() !void {
     var writer_buf: [std.wasm.page_size / 4]u8 = undefined;
     var stdout_writer = std.fs.File.stdout().writer(&writer_buf);
 
-    _ = try mod.parseDjot(&file_reader.interface, &stdout_writer.interface);
+    _ = try mod.parseRMD(&file_reader.interface, &stdout_writer.interface);
 }
 
 test {

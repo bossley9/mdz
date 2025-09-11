@@ -13,7 +13,7 @@ pub fn build(b: *std.Build) !void {
         .optimize = .ReleaseFast,
     });
     const exe = b.addExecutable(.{
-        .name = "zigjot",
+        .name = "rmd",
         .root_module = exe_mod,
         .version = version,
     });
@@ -29,7 +29,7 @@ pub fn build(b: *std.Build) !void {
         .optimize = .ReleaseFast,
     });
     const wasm = b.addExecutable(.{
-        .name = "zigjot",
+        .name = "rmd",
         .root_module = wasm_mod,
         .version = version,
     });
@@ -47,7 +47,7 @@ pub fn build(b: *std.Build) !void {
         .valgrind = true,
     });
     const debug_exe = b.addExecutable(.{
-        .name = "zigjot-debug",
+        .name = "rmd-debug",
         .root_module = debug_mod,
         .version = version,
     });
