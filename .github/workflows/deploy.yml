@@ -1,0 +1,29 @@
+name: deploy site and WASM
+on:
+  push:
+    tags:
+      - "v*"
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: organize
+        run: |
+          mkdir dist
+          cp doc/specification.html dist/index.html
+          cp src/index.js dist/index.js
+          cp zig-out/bin/rmd.wasm dist/rmd.wasm
+      - name: zip
+        uses: developerdino/action-tar@v1
+        with:
+          args: tar -C dist -cvzf site.tar.gz .
+      - name: init hut
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          sudo apt install hut
+          echo "instance \"sr.ht\" {" >> hut_config
+          echo "access-token \"$PAT_TOKEN\"" >> hut_config
+          echo "}" >> hut_config
+      - name: deploy
+        run: hut --config hut_config pages publish -d rmd.bossley.xyz site.tar.gz

@@ -1,21 +1,19 @@
-// replace this with fetch() on a server
-const source = new Response(
-  await Deno.readFile("./zig-out/bin/rmd.wasm"),
-  { headers: { "Content-type": "application/wasm" } },
+const modPromise = WebAssembly.instantiateStreaming(
+  fetch("rmd.wasm"),
 );
-const wasmMod = await WebAssembly.instantiateStreaming(source);
-
-type ParseRMD = (startingMemAddr: 0, memoryLen: number) => number;
 
 const errorPrefix = "error.";
 
 /**
  * Given a RMD input string, parse and return the corresponding HTML
  * string. Errors can be thrown.
+ * @param {string} input
+ * @returns {Promise<string>} output
  */
-export function parseRMD(input: string) {
-  const memory = wasmMod.instance.exports.memory as WebAssembly.Memory;
-  const parseRMDWasm = wasmMod.instance.exports.parseRMDWasm as ParseRMD;
+export async function parseRMD(input) {
+  const wasmMod = await modPromise;
+  const memory = wasmMod.instance.exports.memory;
+  const parseRMDWasm = wasmMod.instance.exports.parseRMDWasm;
 
   // encode input into memory
   const memoryArr = new Uint8Array(memory.buffer);

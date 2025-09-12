@@ -4,7 +4,6 @@ pub fn build(b: *std.Build) !void {
     const main_path = b.path("./src/main.zig");
     const mod_path = b.path("./src/root.zig");
     const target = b.standardTargetOptions(.{});
-    const version = try std.SemanticVersion.parse("0.1.0");
 
     // install
     const exe_mod = b.createModule(.{
@@ -15,7 +14,6 @@ pub fn build(b: *std.Build) !void {
     const exe = b.addExecutable(.{
         .name = "rmd",
         .root_module = exe_mod,
-        .version = version,
     });
     b.installArtifact(exe);
 
@@ -31,7 +29,6 @@ pub fn build(b: *std.Build) !void {
     const wasm = b.addExecutable(.{
         .name = "rmd",
         .root_module = wasm_mod,
-        .version = version,
     });
     wasm.rdynamic = true;
     wasm.entry = .disabled;
@@ -49,7 +46,6 @@ pub fn build(b: *std.Build) !void {
     const debug_exe = b.addExecutable(.{
         .name = "rmd-debug",
         .root_module = debug_mod,
-        .version = version,
     });
     const debug_exe_art = b.addInstallArtifact(debug_exe, .{});
     const run_debug_cmd = b.addRunArtifact(debug_exe);
