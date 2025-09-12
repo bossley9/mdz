@@ -1,4 +1,5 @@
-import { parseRMD } from "./lib.ts";
+// this test file validates build output directly
+import { parseRMD } from "../dist/index.js";
 
 async function expectParseRMD(input: string, expected: string) {
   const received = await parseRMD(input);

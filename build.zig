@@ -64,10 +64,4 @@ pub fn build(b: *std.Build) !void {
     });
     const test_cmd = b.addRunArtifact(test_exe);
     test_step.dependOn(&test_cmd.step);
-
-    // testw
-    const wasm_test_cmd = b.addSystemCommand(&.{ "deno", "test", "--allow-read" });
-    wasm_test_cmd.step.dependOn(&wasm_exe.step);
-    const testwasm_step = b.step("testw", "Run WASM tests (requires Deno)");
-    testwasm_step.dependOn(&wasm_test_cmd.step);
 }

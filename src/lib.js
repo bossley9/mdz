@@ -1,20 +1,29 @@
-const modPromise = WebAssembly.instantiateStreaming(
-  new Response(await Deno.readFile("./zig-out/bin/rmd.wasm"), {
-    headers: { "Content-type": "application/wasm" },
-  }),
-);
+/**
+ * @type {WebAssembly.WebAssemblyInstantiatedSource}
+ */
+let wasmMod;
 
 /**
  * Given a RMD input string, parse and return the corresponding HTML
  * string. Errors can be thrown.
+ * @param {string} input
+ * @return {Promise<string>} output
  */
-export async function parseRMD(input: string): Promise<string> {
-  const wasmMod = await modPromise;
-  const memory = wasmMod.instance.exports.memory as WebAssembly.Memory;
-  const parseRMDWasm = wasmMod.instance.exports.parseRMDWasm as (
-    inputAddr: number,
-    inputLen: number,
-  ) => number;
+export async function parseRMD(input) {
+  // unavoidable init time penalty
+  if (!wasmMod) {
+    wasmMod = await WebAssembly.instantiate(
+      // generated_code_flag_marker
+    );
+  }
+  /**
+   * @type {WebAssembly.Memory}
+   */
+  const memory = wasmMod.instance.exports.memory;
+  /**
+   * @type {(addr: number, len: number) => number}
+   */
+  const parseRMDWasm = wasmMod.instance.exports.parseRMDWasm;
 
   // encode input into memory
   const memoryArr = new Uint8Array(memory.buffer);

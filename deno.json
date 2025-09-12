@@ -1,9 +1,10 @@
 {
   "name": "@bossley9/rmd",
   "version": "0.2.0",
-  "exports": {
-    ".": "./src/lib.ts",
-    "./zig-out/bin/rmd.wasm": "./zig-out/bin/rmd.wasm"
+  "tasks": {
+    "build": "deno run -A generate.ts",
+    "test": "deno run build && deno test --allow-read"
   },
-  "exclude": ["!zig-out/bin/rmd.wasm", "**/*.zig"]
+  "exports": "./dist/index.js",
+  "exclude": ["**/*.zig"]
 }
