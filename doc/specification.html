@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <title>CommonMark Spec</title>
+    <title>Refined Markdown Spec</title>
     <style type="text/css">
       body {
         font-family: Helvetica, arial, freesans, clean, sans-serif;
@@ -120,6 +120,7 @@
         color: white;
       }
       a.dingus {
+        display: none;
         margin-left: 1em;
         cursor: pointer;
         line-height: 30px;
@@ -161,61 +162,35 @@
           display: none;
         }
       }
+      del {
+        background: #ffc2c2;
+      }
+      ins {
+        background: #c2ffb5;
+        text-decoration: inherit;
+      }
     </style>
-    <script src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
-    <script type="text/javascript">
-      $(document).ready(function () {
-        $("div.example").each(function (e) {
-          var t = $(this).find("code.language-markdown").text();
-          $(this).find("a.dingus").click(function (f) {
-            window.open(
-              "/dingus/?text=" +
-                encodeURIComponent(t.replace(/→/g, "\t")),
-            );
-          });
-        });
-        $("code.language-markdown").dblclick(function (e) {
-          window.open(
-            "/dingus/?text=" +
-              encodeURIComponent($(this).text()),
-          );
-        });
-      });
-    </script>
   </head>
   <body>
-    <h1 class="title">CommonMark Spec</h1>
-    <div class="version">Version 0.31.2 (2024-01-28)</div>
-    <div class="authors">
-      <span class="author">John MacFarlane</span>
-    </div>
-    <div class="license">
-      <a
+    <h1 class="title">Refined Markdown Spec</h1>
+    <div class="version">Version 0.1.0 (2025-09-10)</div>
+    <small class="license">
+      This specification is based on the <a
+        href="https://spec.commonmark.org/0.31.2/"
+      >CommonMark 0.31.2 specification</a> and draws inspiration from the <a
+        href="https://github.github.com/gfm/"
+      >Github-Flavored Markdown 0.29 specification</a> and from the <a
+        href="https://github.com/markdown-it/markdown-it"
+      >markdown-it</a> library and its various extensions. This is licensed
+      under a <a
         rel="license"
         href="https://creativecommons.org/licenses/by-sa/4.0/"
-      ><img
-          alt="Creative
-   Commons BY-SA"
-          style="border-width: 0"
-          src="https://i.creativecommons.org/l/by-sa/4.0/80x15.png"
-        /></a>
-      <br />
-      <span style="display: none"><span
-          xmlns:dct="https://purl.org/dc/terms/"
-          href="https://purl.org/dc/dcmitype/Text"
-          property="dct:title"
-          rel="dct:type"
-        >CommonMark Spec</span> by
-        <a
-          xmlns:cc="https://creativecommons.org/ns#"
-          href="https://spec.commonmark.org"
-          property="cc:attributionName"
-          rel="cc:attributionURL"
-        >John MacFarlane</a> is licensed under a
-        <a rel="license" href="https://creativecommons.org/licenses/by-sa/4.0/"
-        >Creative Commons Attribution-ShareAlike 4.0 International License</a
-        >.</span>
-    </div>
+      >Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+    </small>
+    <small>
+      Additions to the original spec will be <ins>highlighted</ins> while
+      removals from the spec will be <del>crossed out</del>.
+    </small>
     <div id="watermark"></div>
 
     <div id="TOC">
@@ -234,6 +209,12 @@
             <li>
               <a href="#about-this-document"><span class="number"
                 >1.3</span>About this document</a>
+            </li>
+            <li>
+              <ins>
+                <a href="#about-refined-markdown"><span class="number"
+                  >1.4</span>About Refined Markdown</a>
+              </ins>
             </li>
           </ul>
         </li>
@@ -287,12 +268,16 @@
                 headings</a>
             </li>
             <li>
-              <a href="#setext-headings"><span class="number">4.3</span>Setext
-                headings</a>
+              <del>
+                <a href="#setext-headings"><span class="number">4.3</span>Setext
+                  headings</a>
+              </del>
             </li>
             <li>
-              <a href="#indented-code-blocks"><span class="number"
-                >4.4</span>Indented code blocks</a>
+              <del>
+                <a href="#indented-code-blocks"><span class="number"
+                  >4.4</span>Indented code blocks</a>
+              </del>
             </li>
             <li>
               <a href="#fenced-code-blocks"><span class="number"
@@ -692,15 +677,17 @@ This paragraph belongs to item two of the outer list.
     <p>
       This document attempts to specify Markdown syntax unambiguously. It
       contains many examples with side-by-side Markdown and HTML. These are
-      intended to double as conformance tests. An accompanying script <code
-      >spec_tests.py</code> can be used to run the tests against any Markdown
-      program:
+      intended to double as conformance tests. <del>An accompanying script <code
+        >spec_tests.py</code> can be used to run the tests against any Markdown
+        program:</del>
     </p>
-    <pre
-    >
-<code>python test/spec_tests.py --spec spec.txt --program PROGRAM
+    <del>
+      <pre
+      >
+      <code>python test/spec_tests.py --spec spec.txt --program PROGRAM
 </code></pre
-    >
+      >
+    </del>
     <p>
       Since this document describes how Markdown is to be parsed into an
       abstract syntax tree, it would have made sense to use an abstract
@@ -720,15 +707,54 @@ This paragraph belongs to item two of the outer list.
       characters in URLs.
     </p>
     <p>
-      This document is generated from a text file, <code>spec.txt</code>,
-      written in Markdown with a small extension for the side-by-side tests. The
-      script <code>tools/makespec.py</code> can be used to convert <code
-      >spec.txt</code> into HTML or CommonMark (which can then be converted into
-      other formats).
+      <del>
+        This document is generated from a text file, <code>spec.txt</code>,
+        written in Markdown with a small extension for the side-by-side tests.
+        The script <code>tools/makespec.py</code> can be used to convert <code
+        >spec.txt</code> into HTML or CommonMark (which can then be converted
+        into other formats).
+      </del>
     </p>
     <p>
       In the examples, the <code>→</code> character is used to represent tabs.
     </p>
+    <h2 id="about-refined-markdown" class="definition">
+      <ins>
+        <span class="number">1.4</span>About Refined Markdown
+      </ins>
+    </h2>
+    <p>
+      <ins>
+        Refined Markdown attempts to further improve upon the original
+        CommonMark specification. This specification reduces the complexity of
+        the original spec while adding new functionality that improves Markdown
+        document writing for the purpose of conversion to HTML.
+      </ins>
+    </p>
+    <p>
+      <ins>The core goals of Refined Markdown are the following:</ins>
+    </p>
+    <ul>
+      <li>
+        <ins>Reduced complexity. There should only be one syntax to write a
+          Refined Markdown block.</ins>
+      </li>
+      <li>
+        <ins>Efficiency. Implementations should be able to parse Refined
+          Markdown without backtracking in O(n).</ins>
+      </li>
+      <li>
+        <ins>Close compatibility. Excluding extensions, the markup defined in
+          this document should produce <em>similar</em> output for other
+          CommonMark implementations to preserve relative backwards
+          compatibility.</ins>
+      </li>
+      <li>
+        <ins>WYSIWYG. The CommonMark spec handles whitespace delicately,
+          omitting it in certain scenarios and creating code blocks or nested
+          containers in others. Whitespace should be passed through as is.</ins>
+      </li>
+    </ul>
     <h1 id="preliminaries" class="definition">
       <span class="number">2</span>Preliminaries
     </h1>
@@ -759,9 +785,9 @@ This paragraph belongs to item two of the outer list.
     </p>
     <p>
       A <a id="line-ending" href="#line-ending" class="definition"
-      >line ending</a> is a line feed (<code>U+000A</code>), a carriage return
-      (<code>U+000D</code>) not followed by a line feed, or a carriage return
-      and a following line feed.
+      >line ending</a> is a line feed (<code>U+000A</code>)<del>, a carriage
+        return (<code>U+000D</code>) not followed by a line feed,</del> or a
+      carriage return and a following line feed.
     </p>
     <p>
       A line containing no characters, or a line containing only spaces (<code
@@ -2392,17 +2418,20 @@ bar
       An <a id="atx-heading" href="#atx-heading" class="definition"
       >ATX heading</a>
       consists of a string of characters, parsed as inline content, between an
-      opening sequence of 1–6 unescaped <code>#</code> characters and an
-      optional closing sequence of any number of unescaped <code>#</code>
-      characters. The opening sequence of <code>#</code> characters must be
-      followed by spaces or tabs, or by the end of line. The optional closing
-      sequence of <code>#</code>s must be preceded by spaces or tabs and may be
-      followed by spaces or tabs only. The opening
-      <code>#</code> character may be preceded by up to three spaces of
-      indentation. The raw contents of the heading are stripped of leading and
-      trailing space or tabs before being parsed as inline content. The heading
-      level is equal to the number of <code>#</code> characters in the opening
-      sequence.
+      opening sequence of 1–6 unescaped <code>#</code> characters<del>
+        and an optional closing sequence of any number of unescaped <code
+        >#</code>
+        characters</del>. The <del>opening</del> sequence of <code>#</code>
+      characters must be followed by <del>spaces or tabs, or by the end of
+        line</del>
+      <ins>exactly one space</ins>.<del>
+        The optional closing sequence of <code>#</code>s must be preceded by
+        spaces or tabs and may be followed by spaces or tabs only. The opening
+        <code>#</code> character may be preceded by up to three spaces of
+        indentation.</del> The raw contents of the heading are<del>
+        stripped of leading and trailing space or tabs before being</del> parsed
+      as inline content. The heading level is equal to the number of <code
+      >#</code> characters in the opening sequence.
     </p>
     <p>Simple headings:</p>
     <div class="example" id="example-62">
@@ -2457,10 +2486,11 @@ bar
       </div>
     </div>
     <p>
-      At least one space or tab is required between the <code>#</code>
-      characters and the heading’s contents, unless the heading is empty. Note
-      that many implementations currently do not require the space. However, the
-      space was required by the
+      <del>At least one space or tab</del>
+      <ins>Exactly one space</ins> is required between the <code>#</code>
+      characters and the heading’s contents<del>, unless the heading is
+        empty</del>. Note that many implementations currently do not require the
+      space. However, the space was required by the
       <a href="http://www.aaronsw.com/2002/atx/atx.py"
       >original ATX implementation</a>, and it helps prevent things like the
       following from being parsed as headings:
@@ -2531,11 +2561,14 @@ bar
       </div>
     </div>
     <p>
-      Leading and trailing spaces or tabs are ignored in parsing inline content:
+      <del>
+        Leading and trailing spaces or tabs are ignored in parsing inline
+        content:
+      </del>
     </p>
     <div class="example" id="example-67">
       <div class="examplenum">
-        <a href="#example-67">Example 67</a>
+        <a href="#example-67"><del>Example 67</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2551,10 +2584,10 @@ bar
 </code></pre>
       </div>
     </div>
-    <p>Up to three spaces of indentation are allowed:</p>
+    <p><del>Up to three spaces of indentation are allowed:</del></p>
     <div class="example" id="example-68">
       <div class="examplenum">
-        <a href="#example-68">Example 68</a>
+        <a href="#example-68"><del>Example 68</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2576,10 +2609,30 @@ bar
         >
       </div>
     </div>
-    <p>Four spaces of indentation is too many:</p>
+    <p><ins>Indentation is not allowed:</ins></p>
+    <div class="example" id="example-68-2">
+      <div class="examplenum">
+        <a href="#example-68-2"><ins>Example 68-2</ins></a>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-markdown"><span class="space"> </span>###<span class="space"> </span>foo
+</code></pre
+        >
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;p&gt;<span class="space"> </span>###<span class="space"> </span>foo&lt;/p&gt;
+</code></pre
+        >
+      </div>
+    </div>
+    <p><del>Four spaces of indentation is too many:</del></p>
     <div class="example" id="example-69">
       <div class="examplenum">
-        <a href="#example-69">Example 69</a>
+        <a href="#example-69"><del>Example 69</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2600,7 +2653,7 @@ bar
     </div>
     <div class="example" id="example-70">
       <div class="examplenum">
-        <a href="#example-70">Example 70</a>
+        <a href="#example-70"><del>Example 70</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2620,10 +2673,33 @@ bar
         >
       </div>
     </div>
-    <p>A closing sequence of <code>#</code> characters is optional:</p>
+    <div class="example" id="example-70-2">
+      <div class="examplenum">
+        <a href="#example-70-2"><ins>Example 70-2</ins></a>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-markdown">foo
+<span class="space"> </span><span class="space"> </span><span class="space"> </span><span class="space"> </span>#<span class="space"> </span>bar
+</code></pre
+        >
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;p&gt;foo
+<span class="space"> </span><span class="space"> </span><span class="space"> </span><span class="space"> </span>#<span class="space"> </span>bar&lt;/p&gt;
+</code></pre
+        >
+      </div>
+    </div>
+    <p>
+      <del>A closing sequence of <code>#</code> characters is optional:</del>
+    </p>
     <div class="example" id="example-71">
       <div class="examplenum">
-        <a href="#example-71">Example 71</a>
+        <a href="#example-71"><del>Example 71</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2643,10 +2719,10 @@ bar
         >
       </div>
     </div>
-    <p>It need not be the same length as the opening sequence:</p>
+    <p><del>It need not be the same length as the opening sequence:</del></p>
     <div class="example" id="example-72">
       <div class="examplenum">
-        <a href="#example-72">Example 72</a>
+        <a href="#example-72"><del>Example 72</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2666,10 +2742,10 @@ bar
         >
       </div>
     </div>
-    <p>Spaces or tabs are allowed after the closing sequence:</p>
+    <p><del>Spaces or tabs are allowed after the closing sequence:</del></p>
     <div class="example" id="example-73">
       <div class="examplenum">
-        <a href="#example-73">Example 73</a>
+        <a href="#example-73"><del>Example 73</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2686,9 +2762,11 @@ bar
       </div>
     </div>
     <p>
-      A sequence of <code>#</code> characters with anything but spaces or tabs
-      following it is not a closing sequence, but counts as part of the contents
-      of the heading:
+      <del>
+        A sequence of <code>#</code> characters with anything but spaces or tabs
+        following it is not a closing sequence, but counts as part of the
+        contents of the heading:
+      </del>
     </p>
     <div class="example" id="example-74">
       <div class="examplenum">
@@ -2710,7 +2788,7 @@ bar
         >
       </div>
     </div>
-    <p>The closing sequence must be preceded by a space or tab:</p>
+    <p><del>The closing sequence must be preceded by a space or tab:</del></p>
     <div class="example" id="example-75">
       <div class="examplenum">
         <a href="#example-75">Example 75</a>
@@ -2730,8 +2808,9 @@ bar
       </div>
     </div>
     <p>
-      Backslash-escaped <code>#</code> characters do not count as part of the
-      closing sequence:
+      <del>Backslash-escaped <code>#</code> characters do not count as part of
+        the closing sequence:
+      </del>
     </p>
     <div class="example" id="example-76">
       <div class="examplenum">
@@ -2758,12 +2837,13 @@ bar
       </div>
     </div>
     <p>
-      ATX headings need not be separated from surrounding content by blank
-      lines, and they can interrupt paragraphs:
+      ATX headings <del>need not</del>
+      <ins>must</ins> be separated from surrounding content by blank lines<del>,
+        and they can interrupt paragraphs</del>:
     </p>
     <div class="example" id="example-77">
       <div class="examplenum">
-        <a href="#example-77">Example 77</a>
+        <a href="#example-77"><del>Example 77</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2785,9 +2865,34 @@ bar
         >
       </div>
     </div>
+    <div class="example" id="example-77-2">
+      <div class="examplenum">
+        <a href="#example-77-2"><ins>Example 77-2</ins></a>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-markdown">---
+
+##<span class="space"> </span>foo
+
+---
+</code></pre
+        >
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;hr<span class="space"> </span>/&gt;
+&lt;h2&gt;foo&lt;/h2&gt;
+&lt;hr<span class="space"> </span>/&gt;
+</code></pre
+        >
+      </div>
+    </div>
     <div class="example" id="example-78">
       <div class="examplenum">
-        <a href="#example-78">Example 78</a>
+        <a href="#example-78"><del>Example 78</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2805,6 +2910,29 @@ Bar<span class="space"> </span>foo
 <code class="language-html">&lt;p&gt;Foo<span class="space"> </span>bar&lt;/p&gt;
 &lt;h1&gt;baz&lt;/h1&gt;
 &lt;p&gt;Bar<span class="space"> </span>foo&lt;/p&gt;
+</code></pre
+        >
+      </div>
+    </div>
+    <div class="example" id="example-78-2">
+      <div class="examplenum">
+        <a href="#example-78-2"><ins>Example 78-2</ins></a>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-markdown">Foo<span class="space"> </span>bar
+#<span class="space"> </span>baz
+Bar<span class="space"> </span>foo
+</code></pre
+        >
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;p&gt;Foo<span class="space"> </span>bar
+#<span class="space"> </span>baz
+Bar<span class="space"> </span>foo&lt;/p&gt;
 </code></pre
         >
       </div>
@@ -2834,50 +2962,88 @@ Bar<span class="space"> </span>foo
         >
       </div>
     </div>
+    <p>
+      <ins>ATX Headings only span one line. They cannot <a
+          href="#lazy-continuation-line"
+        >lazily continue</a>.</ins>
+    </p>
+    <div class="example" id="example-79-2">
+      <div class="examplenum">
+        <a href="#example-79-2"><ins>Example 79-2</ins></a>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-markdown">#<span class="space"> </span>Hello
+world!
+</code></pre
+        >
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;h1&gt;Hello&lt;/h1&gt;
+&lt;p&gt;world!&lt;/p&gt;
+</code></pre
+        >
+      </div>
+    </div>
+
     <h2 id="setext-headings" class="definition">
-      <span class="number">4.3</span>Setext headings
+      <del>
+        <span class="number">4.3</span>Setext headings
+      </del>
     </h2>
     <p>
-      A <a id="setext-heading" href="#setext-heading" class="definition"
-      >setext heading</a> consists of one or more lines of text, not interrupted
-      by a blank line, of which the first line does not have more than 3 spaces
-      of indentation, followed by a <a href="#setext-heading-underline"
-      >setext heading underline</a>. The lines of text must be such that, were
-      they not followed by the setext heading underline, they would be
-      interpreted as a paragraph: they cannot be interpretable as a <a
-        href="#code-fence"
-      >code fence</a>, <a href="#atx-headings">ATX heading</a>,
-      <a href="#block-quotes">block quote</a>, <a href="#thematic-breaks"
-      >thematic break</a>,
-      <a href="#list-items">list item</a>, or <a href="#html-blocks"
-      >HTML block</a>.
+      <del>
+        A <a id="setext-heading" href="#setext-heading" class="definition"
+        >setext heading</a> consists of one or more lines of text, not
+        interrupted by a blank line, of which the first line does not have more
+        than 3 spaces of indentation, followed by a <a
+          href="#setext-heading-underline"
+        >setext heading underline</a>. The lines of text must be such that, were
+        they not followed by the setext heading underline, they would be
+        interpreted as a paragraph: they cannot be interpretable as a <a
+          href="#code-fence"
+        >code fence</a>, <a href="#atx-headings">ATX heading</a>,
+        <a href="#block-quotes">block quote</a>, <a href="#thematic-breaks"
+        >thematic break</a>,
+        <a href="#list-items">list item</a>, or <a href="#html-blocks"
+        >HTML block</a>.
+      </del>
     </p>
     <p>
-      A <a
-        id="setext-heading-underline"
-        href="#setext-heading-underline"
-        class="definition"
-      >setext heading underline</a> is a sequence of
-      <code>=</code> characters or a sequence of <code>-</code> characters, with
-      no more than 3 spaces of indentation and any number of trailing spaces or
-      tabs.
+      <del>
+        A <a
+          id="setext-heading-underline"
+          href="#setext-heading-underline"
+          class="definition"
+        >setext heading underline</a> is a sequence of
+        <code>=</code> characters or a sequence of <code>-</code> characters,
+        with no more than 3 spaces of indentation and any number of trailing
+        spaces or tabs.
+      </del>
     </p>
     <p>
-      The heading is a level 1 heading if <code>=</code> characters are used in
-      the <a href="#setext-heading-underline">setext heading underline</a>, and
-      a level 2 heading if <code>-</code>
-      characters are used. The contents of the heading are the result of parsing
-      the preceding lines of text as CommonMark inline content.
+      <del>
+        The heading is a level 1 heading if <code>=</code> characters are used
+        in the <a href="#setext-heading-underline">setext heading underline</a>,
+        and a level 2 heading if <code>-</code>
+        characters are used. The contents of the heading are the result of
+        parsing the preceding lines of text as CommonMark inline content.
+      </del>
     </p>
     <p>
-      In general, a setext heading need not be preceded or followed by a blank
-      line. However, it cannot interrupt a paragraph, so when a setext heading
-      comes after a paragraph, a blank line is needed between them.
+      <del>
+        In general, a setext heading need not be preceded or followed by a blank
+        line. However, it cannot interrupt a paragraph, so when a setext heading
+        comes after a paragraph, a blank line is needed between them.
+      </del>
     </p>
-    <p>Simple examples:</p>
+    <p><del>Simple examples:</del></p>
     <div class="example" id="example-80">
       <div class="examplenum">
-        <a href="#example-80">Example 80</a>
+        <a href="#example-80"><del>Example 80</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2900,10 +3066,10 @@ Foo<span class="space"> </span>*bar*
         >
       </div>
     </div>
-    <p>The content of the header may span more than one line:</p>
+    <p><del>The content of the header may span more than one line:</del></p>
     <div class="example" id="example-81">
       <div class="examplenum">
-        <a href="#example-81">Example 81</a>
+        <a href="#example-81"><del>Example 81</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2925,13 +3091,15 @@ baz&lt;/em&gt;&lt;/h1&gt;
       </div>
     </div>
     <p>
-      The contents are the result of parsing the headings’s raw content as
-      inlines. The heading’s raw content is formed by concatenating the lines
-      and removing initial and final spaces or tabs.
+      <del>
+        The contents are the result of parsing the headings’s raw content as
+        inlines. The heading’s raw content is formed by concatenating the lines
+        and removing initial and final spaces or tabs.
+      </del>
     </p>
     <div class="example" id="example-82">
       <div class="examplenum">
-        <a href="#example-82">Example 82</a>
+        <a href="#example-82"><del>Example 82</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2952,10 +3120,10 @@ baz&lt;/em&gt;&lt;/h1&gt;
         >
       </div>
     </div>
-    <p>The underlining can be any length:</p>
+    <p><del>The underlining can be any length:</del></p>
     <div class="example" id="example-83">
       <div class="examplenum">
-        <a href="#example-83">Example 83</a>
+        <a href="#example-83"><del>Example 83</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2979,12 +3147,14 @@ Foo
       </div>
     </div>
     <p>
-      The heading content can be preceded by up to three spaces of indentation,
-      and need not line up with the underlining:
+      <del>
+        The heading content can be preceded by up to three spaces of
+        indentation, and need not line up with the underlining:
+      </del>
     </p>
     <div class="example" id="example-84">
       <div class="examplenum">
-        <a href="#example-84">Example 84</a>
+        <a href="#example-84"><del>Example 84</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3011,10 +3181,10 @@ Foo
         >
       </div>
     </div>
-    <p>Four spaces of indentation is too many:</p>
+    <p><del>Four spaces of indentation is too many:</del></p>
     <div class="example" id="example-85">
       <div class="examplenum">
-        <a href="#example-85">Example 85</a>
+        <a href="#example-85"><del>Example 85</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3042,12 +3212,14 @@ Foo
       </div>
     </div>
     <p>
-      The setext heading underline can be preceded by up to three spaces of
-      indentation, and may have trailing spaces or tabs:
+      <del>
+        The setext heading underline can be preceded by up to three spaces of
+        indentation, and may have trailing spaces or tabs:
+      </del>
     </p>
     <div class="example" id="example-86">
       <div class="examplenum">
-        <a href="#example-86">Example 86</a>
+        <a href="#example-86"><del>Example 86</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3064,10 +3236,10 @@ Foo
 </code></pre>
       </div>
     </div>
-    <p>Four spaces of indentation is too many:</p>
+    <p><del>Four spaces of indentation is too many:</del></p>
     <div class="example" id="example-87">
       <div class="examplenum">
-        <a href="#example-87">Example 87</a>
+        <a href="#example-87"><del>Example 87</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3085,10 +3257,13 @@ Foo
 </code></pre>
       </div>
     </div>
-    <p>The setext heading underline cannot contain internal spaces or tabs:</p>
+    <p>
+      <del>The setext heading underline cannot contain internal spaces or
+        tabs:</del>
+    </p>
     <div class="example" id="example-88">
       <div class="examplenum">
-        <a href="#example-88">Example 88</a>
+        <a href="#example-88"><del>Example 88</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3114,12 +3289,14 @@ Foo
       </div>
     </div>
     <p>
-      Trailing spaces or tabs in the content line do not cause a hard line
-      break:
+      <del>
+        Trailing spaces or tabs in the content line do not cause a hard line
+        break:
+      </del>
     </p>
     <div class="example" id="example-89">
       <div class="examplenum">
-        <a href="#example-89">Example 89</a>
+        <a href="#example-89"><del>Example 89</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3136,10 +3313,10 @@ Foo
 </code></pre>
       </div>
     </div>
-    <p>Nor does a backslash at the end:</p>
+    <p><del>Nor does a backslash at the end:</del></p>
     <div class="example" id="example-90">
       <div class="examplenum">
-        <a href="#example-90">Example 90</a>
+        <a href="#example-90"><del>Example 90</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3155,12 +3332,14 @@ Foo
       </div>
     </div>
     <p>
-      Since indicators of block structure take precedence over indicators of
-      inline structure, the following are setext headings:
+      <del>
+        Since indicators of block structure take precedence over indicators of
+        inline structure, the following are setext headings:
+      </del>
     </p>
     <div class="example" id="example-91">
       <div class="examplenum">
-        <a href="#example-91">Example 91</a>
+        <a href="#example-91"><del>Example 91</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3188,12 +3367,15 @@ of<span class="space"> </span>dashes&quot;/&gt;
       </div>
     </div>
     <p>
-      The setext heading underline cannot be a <a href="#lazy-continuation-line"
-      >lazy continuation line</a> in a list item or block quote:
+      <del>
+        The setext heading underline cannot be a <a
+          href="#lazy-continuation-line"
+        >lazy continuation line</a> in a list item or block quote:
+      </del>
     </p>
     <div class="example" id="example-92">
       <div class="examplenum">
-        <a href="#example-92">Example 92</a>
+        <a href="#example-92"><del>Example 92</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3217,7 +3399,7 @@ of<span class="space"> </span>dashes&quot;/&gt;
     </div>
     <div class="example" id="example-93">
       <div class="examplenum">
-        <a href="#example-93">Example 93</a>
+        <a href="#example-93"><del>Example 93</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3243,7 +3425,7 @@ bar
     </div>
     <div class="example" id="example-94">
       <div class="examplenum">
-        <a href="#example-94">Example 94</a>
+        <a href="#example-94"><del>Example 94</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3266,12 +3448,15 @@ bar
       </div>
     </div>
     <p>
-      A blank line is needed between a paragraph and a following setext heading,
-      since otherwise the paragraph becomes part of the heading’s content:
+      <del>
+        A blank line is needed between a paragraph and a following setext
+        heading, since otherwise the paragraph becomes part of the heading’s
+        content:
+      </del>
     </p>
     <div class="example" id="example-95">
       <div class="examplenum">
-        <a href="#example-95">Example 95</a>
+        <a href="#example-95"><del>Example 95</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3290,12 +3475,14 @@ Bar&lt;/h2&gt;
       </div>
     </div>
     <p>
-      But in general a blank line is not required before or after setext
-      headings:
+      <del>
+        But in general a blank line is not required before or after setext
+        headings:
+      </del>
     </p>
     <div class="example" id="example-96">
       <div class="examplenum">
-        <a href="#example-96">Example 96</a>
+        <a href="#example-96"><del>Example 96</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3319,10 +3506,10 @@ Baz
         >
       </div>
     </div>
-    <p>Setext headings cannot be empty:</p>
+    <p><del>Setext headings cannot be empty:</del></p>
     <div class="example" id="example-97">
       <div class="examplenum">
-        <a href="#example-97">Example 97</a>
+        <a href="#example-97"><del>Example 97</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3338,13 +3525,15 @@ Baz
       </div>
     </div>
     <p>
-      Setext heading text lines must not be interpretable as block constructs
-      other than paragraphs. So, the line of dashes in these examples gets
-      interpreted as a thematic break:
+      <del>
+        Setext heading text lines must not be interpretable as block constructs
+        other than paragraphs. So, the line of dashes in these examples gets
+        interpreted as a thematic break:
+      </del>
     </p>
     <div class="example" id="example-98">
       <div class="examplenum">
-        <a href="#example-98">Example 98</a>
+        <a href="#example-98"><del>Example 98</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3364,7 +3553,7 @@ Baz
     </div>
     <div class="example" id="example-99">
       <div class="examplenum">
-        <a href="#example-99">Example 99</a>
+        <a href="#example-99"><del>Example 99</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3388,7 +3577,7 @@ Baz
     </div>
     <div class="example" id="example-100">
       <div class="examplenum">
-        <a href="#example-100">Example 100</a>
+        <a href="#example-100"><del>Example 100</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3411,7 +3600,7 @@ Baz
     </div>
     <div class="example" id="example-101">
       <div class="examplenum">
-        <a href="#example-101">Example 101</a>
+        <a href="#example-101"><del>Example 101</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3434,12 +3623,14 @@ Baz
       </div>
     </div>
     <p>
-      If you want a heading with <code>&gt; foo</code> as its literal text, you
-      can use backslash escapes:
+      <del>
+        If you want a heading with <code>&gt; foo</code> as its literal text,
+        you can use backslash escapes:
+      </del>
     </p>
     <div class="example" id="example-102">
       <div class="examplenum">
-        <a href="#example-102">Example 102</a>
+        <a href="#example-102"><del>Example 102</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3459,9 +3650,11 @@ Baz
       </div>
     </div>
     <p>
-      <strong>Compatibility note:</strong> Most existing Markdown
-      implementations do not allow the text of setext headings to span multiple
-      lines. But there is no consensus about how to interpret
+      <del>
+        <strong>Compatibility note:</strong> Most existing Markdown
+        implementations do not allow the text of setext headings to span
+        multiple lines. But there is no consensus about how to interpret
+      </del>
     </p>
     <pre>
 <code class="language-markdown">Foo
@@ -3469,21 +3662,24 @@ bar
 ---
 baz
 </code></pre>
-    <p>One can find four different interpretations:</p>
+    <p><del>One can find four different interpretations:</del></p>
     <ol>
-      <li>paragraph “Foo”, heading “bar”, paragraph “baz”</li>
-      <li>paragraph “Foo bar”, thematic break, paragraph “baz”</li>
-      <li>paragraph “Foo bar — baz”</li>
-      <li>heading “Foo bar”, paragraph “baz”</li>
+      <li><del>paragraph “Foo”, heading “bar”, paragraph “baz”</del></li>
+      <li><del>paragraph “Foo bar”, thematic break, paragraph “baz”</del></li>
+      <li><del>paragraph “Foo bar — baz”</del></li>
+      <li><del>heading “Foo bar”, paragraph “baz”</del></li>
     </ol>
     <p>
-      We find interpretation 4 most natural, and interpretation 4 increases the
-      expressive power of CommonMark, by allowing multiline headings. Authors
-      who want interpretation 1 can put a blank line after the first paragraph:
+      <del>
+        We find interpretation 4 most natural, and interpretation 4 increases
+        the expressive power of CommonMark, by allowing multiline headings.
+        Authors who want interpretation 1 can put a blank line after the first
+        paragraph:
+      </del>
     </p>
     <div class="example" id="example-103">
       <div class="examplenum">
-        <a href="#example-103">Example 103</a>
+        <a href="#example-103"><del>Example 103</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3506,12 +3702,14 @@ baz
       </div>
     </div>
     <p>
-      Authors who want interpretation 2 can put blank lines around the thematic
-      break,
+      <del>
+        Authors who want interpretation 2 can put blank lines around the
+        thematic break,
+      </del>
     </p>
     <div class="example" id="example-104">
       <div class="examplenum">
-        <a href="#example-104">Example 104</a>
+        <a href="#example-104"><del>Example 104</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3536,13 +3734,15 @@ bar&lt;/p&gt;
       </div>
     </div>
     <p>
-      or use a thematic break that cannot count as a <a
-        href="#setext-heading-underline"
-      >setext heading underline</a>, such as
+      <del>
+        or use a thematic break that cannot count as a <a
+          href="#setext-heading-underline"
+        >setext heading underline</a>, such as
+      </del>
     </p>
     <div class="example" id="example-105">
       <div class="examplenum">
-        <a href="#example-105">Example 105</a>
+        <a href="#example-105"><del>Example 105</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3566,10 +3766,12 @@ bar&lt;/p&gt;
         >
       </div>
     </div>
-    <p>Authors who want interpretation 3 can use backslash escapes:</p>
+    <p>
+      <del>Authors who want interpretation 3 can use backslash escapes:</del>
+    </p>
     <div class="example" id="example-106">
       <div class="examplenum">
-        <a href="#example-106">Example 106</a>
+        <a href="#example-106"><del>Example 106</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3592,31 +3794,39 @@ baz&lt;/p&gt;
       </div>
     </div>
     <h2 id="indented-code-blocks" class="definition">
-      <span class="number">4.4</span>Indented code blocks
+      <del>
+        <span class="number">4.4</span>Indented code blocks
+      </del>
     </h2>
     <p>
-      An <a
-        id="indented-code-block"
-        href="#indented-code-block"
-        class="definition"
-      >indented code block</a> is composed of one or more
-      <a href="#indented-chunk">indented chunks</a> separated by blank lines. An
-      <a id="indented-chunk" href="#indented-chunk" class="definition"
-      >indented chunk</a> is a sequence of non-blank lines, each preceded by
-      four or more spaces of indentation. The contents of the code block are the
-      literal contents of the lines, including trailing
-      <a href="#line-ending">line endings</a>, minus four spaces of indentation.
-      An indented code block has no <a href="#info-string">info string</a>.
+      <del>
+        An <a
+          id="indented-code-block"
+          href="#indented-code-block"
+          class="definition"
+        >indented code block</a> is composed of one or more
+        <a href="#indented-chunk">indented chunks</a> separated by blank lines.
+        An
+        <a id="indented-chunk" href="#indented-chunk" class="definition"
+        >indented chunk</a> is a sequence of non-blank lines, each preceded by
+        four or more spaces of indentation. The contents of the code block are
+        the literal contents of the lines, including trailing
+        <a href="#line-ending">line endings</a>, minus four spaces of
+        indentation. An indented code block has no <a href="#info-string"
+        >info string</a>.
+      </del>
     </p>
     <p>
-      An indented code block cannot interrupt a paragraph, so there must be a
-      blank line between a paragraph and a following indented code block. (A
-      blank line is not needed, however, between a code block and a following
-      paragraph.)
+      <del>
+        An indented code block cannot interrupt a paragraph, so there must be a
+        blank line between a paragraph and a following indented code block. (A
+        blank line is not needed, however, between a code block and a following
+        paragraph.)
+      </del>
     </p>
     <div class="example" id="example-107">
       <div class="examplenum">
-        <a href="#example-107">Example 107</a>
+        <a href="#example-107"><del>Example 107</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3638,14 +3848,16 @@ baz&lt;/p&gt;
       </div>
     </div>
     <p>
-      If there is any ambiguity between an interpretation of indentation as a
-      code block and as indicating that material belongs to a <a
-        href="#list-items"
-      >list item</a>, the list item interpretation takes precedence:
+      <del>
+        If there is any ambiguity between an interpretation of indentation as a
+        code block and as indicating that material belongs to a <a
+          href="#list-items"
+        >list item</a>, the list item interpretation takes precedence:
+      </del>
     </p>
     <div class="example" id="example-108">
       <div class="examplenum">
-        <a href="#example-108">Example 108</a>
+        <a href="#example-108"><del>Example 108</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3672,7 +3884,7 @@ baz&lt;/p&gt;
     </div>
     <div class="example" id="example-109">
       <div class="examplenum">
-        <a href="#example-109">Example 109</a>
+        <a href="#example-109"><del>Example 109</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3700,12 +3912,14 @@ baz&lt;/p&gt;
       </div>
     </div>
     <p>
-      The contents of a code block are literal text, and do not get parsed as
-      Markdown:
+      <del>
+        The contents of a code block are literal text, and do not get parsed as
+        Markdown:
+      </del>
     </p>
     <div class="example" id="example-110">
       <div class="examplenum">
-        <a href="#example-110">Example 110</a>
+        <a href="#example-110"><del>Example 110</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3730,10 +3944,10 @@ baz&lt;/p&gt;
         >
       </div>
     </div>
-    <p>Here we have three chunks separated by blank lines:</p>
+    <p><del>Here we have three chunks separated by blank lines:</del></p>
     <div class="example" id="example-111">
       <div class="examplenum">
-        <a href="#example-111">Example 111</a>
+        <a href="#example-111"><del>Example 111</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3765,12 +3979,14 @@ chunk3
       </div>
     </div>
     <p>
-      Any initial spaces or tabs beyond four spaces of indentation will be
-      included in the content, even in interior blank lines:
+      <del>
+        Any initial spaces or tabs beyond four spaces of indentation will be
+        included in the content, even in interior blank lines:
+      </del>
     </p>
     <div class="example" id="example-112">
       <div class="examplenum">
-        <a href="#example-112">Example 112</a>
+        <a href="#example-112"><del>Example 112</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3794,12 +4010,14 @@ chunk3
       </div>
     </div>
     <p>
-      An indented code block cannot interrupt a paragraph. (This allows hanging
-      indents and the like.)
+      <del>
+        An indented code block cannot interrupt a paragraph. (This allows
+        hanging indents and the like.)
+      </del>
     </p>
     <div class="example" id="example-113">
       <div class="examplenum">
-        <a href="#example-113">Example 113</a>
+        <a href="#example-113"><del>Example 113</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3818,13 +4036,15 @@ bar&lt;/p&gt;
       </div>
     </div>
     <p>
-      However, any non-blank line with fewer than four spaces of indentation
-      ends the code block immediately. So a paragraph may occur immediately
-      after indented code:
+      <del>
+        However, any non-blank line with fewer than four spaces of indentation
+        ends the code block immediately. So a paragraph may occur immediately
+        after indented code:
+      </del>
     </p>
     <div class="example" id="example-114">
       <div class="examplenum">
-        <a href="#example-114">Example 114</a>
+        <a href="#example-114"><del>Example 114</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3846,12 +4066,14 @@ bar
       </div>
     </div>
     <p>
-      And indented code can occur immediately before and after other kinds of
-      blocks:
+      <del>
+        And indented code can occur immediately before and after other kinds of
+        blocks:
+      </del>
     </p>
     <div class="example" id="example-115">
       <div class="examplenum">
-        <a href="#example-115">Example 115</a>
+        <a href="#example-115"><del>Example 115</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3881,11 +4103,13 @@ Heading
       </div>
     </div>
     <p>
-      The first line can be preceded by more than four spaces of indentation:
+      <del>
+        The first line can be preceded by more than four spaces of indentation:
+      </del>
     </p>
     <div class="example" id="example-116">
       <div class="examplenum">
-        <a href="#example-116">Example 116</a>
+        <a href="#example-116"><del>Example 116</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3907,12 +4131,14 @@ bar
       </div>
     </div>
     <p>
-      Blank lines preceding or following an indented code block are not included
-      in it:
+      <del>
+        Blank lines preceding or following an indented code block are not
+        included in it:
+      </del>
     </p>
     <div class="example" id="example-117">
       <div class="examplenum">
-        <a href="#example-117">Example 117</a>
+        <a href="#example-117"><del>Example 117</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3934,10 +4160,13 @@ bar
         >
       </div>
     </div>
-    <p>Trailing spaces or tabs are included in the code block’s content:</p>
+    <p>
+      <del>Trailing spaces or tabs are included in the code block’s
+        content:</del>
+    </p>
     <div class="example" id="example-118">
       <div class="examplenum">
-        <a href="#example-118">Example 118</a>
+        <a href="#example-118"><del>Example 118</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -3962,8 +4191,8 @@ bar
     <p>
       A <a id="code-fence" href="#code-fence" class="definition">code fence</a>
       is a sequence of at least three consecutive backtick characters (<code
-      >`</code>) or tildes (<code>~</code>). (Tildes and backticks cannot be
-      mixed.) A <a
+      >`</code>)<del> or tildes (<code>~</code>)</del>.<del>(Tildes and
+        backticks cannot be mixed.)</del> A <a
         id="fenced-code-block"
         href="#fenced-code-block"
         class="definition"
@@ -4042,10 +4271,10 @@ bar
         >
       </div>
     </div>
-    <p>With tildes:</p>
+    <p><del>With tildes:</del></p>
     <div class="example" id="example-120">
       <div class="examplenum">
-        <a href="#example-120">Example 120</a>
+        <a href="#example-120"><del>Example 120</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -4117,7 +4346,7 @@ aaa
     </div>
     <div class="example" id="example-123">
       <div class="examplenum">
-        <a href="#example-123">Example 123</a>
+        <a href="#example-123"><del>Example 123</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -4138,10 +4367,13 @@ aaa
         >
       </div>
     </div>
-    <p>The closing code fence must be at least as long as the opening fence:</p>
+    <p>
+      <del>The closing code fence must be at least as long as the opening
+        fence:</del>
+    </p>
     <div class="example" id="example-124">
       <div class="examplenum">
-        <a href="#example-124">Example 124</a>
+        <a href="#example-124"><del>Example 124</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -4164,7 +4396,7 @@ aaa
     </div>
     <div class="example" id="example-125">
       <div class="examplenum">
-        <a href="#example-125">Example 125</a>
+        <a href="#example-125"><del>Example 125</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -4181,6 +4413,29 @@ aaa
 <code class="language-html">&lt;pre&gt;&lt;code&gt;aaa
 ~~~
 &lt;/code&gt;&lt;/pre&gt;
+</code></pre
+        >
+      </div>
+    </div>
+    <p>
+      <ins>The opening and closing code fences must be exactly 3 backticks long
+        (excluding the info string):</ins>
+    </p>
+    <div class="example" id="example-125-2">
+      <div class="examplenum">
+        <a href="#example-125-2"><ins>Example 125-2</ins></a>
+      </div>
+      <div class="column">
+        <pre>
+<code class="language-markdown">```
+content
+```
+</code></pre>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;pre&gt;&lt;code&gt;content<br/>&lt;/code&gt;&lt;/pre&gt;
 </code></pre
         >
       </div>
@@ -4210,7 +4465,7 @@ aaa
     </div>
     <div class="example" id="example-127">
       <div class="examplenum">
-        <a href="#example-127">Example 127</a>
+        <a href="#example-127"><del>Example 127</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -4227,6 +4482,25 @@ aaa
 <code class="language-html">&lt;pre&gt;&lt;code&gt;
 ```
 aaa
+&lt;/code&gt;&lt;/pre&gt;
+</code></pre
+        >
+      </div>
+    </div>
+    <div class="example" id="example-127-2">
+      <div class="examplenum">
+        <a href="#example-127-2"><ins>Example 127-2</ins></a>
+      </div>
+      <div class="column">
+        <pre>
+<code class="language-markdown">```
+aaa
+</code></pre>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;pre&gt;&lt;code&gt;aaa
 &lt;/code&gt;&lt;/pre&gt;
 </code></pre
         >
@@ -4306,12 +4580,13 @@ bbb
       </div>
     </div>
     <p>
-      Fences can be indented. If the opening fence is indented, content lines
-      will have equivalent opening indentation removed, if present:
+      Fences can<ins>not</ins> be indented<del>. If the opening fence is
+        indented, content lines will have equivalent opening indentation
+        removed, if present</del>:
     </p>
     <div class="example" id="example-131">
       <div class="examplenum">
-        <a href="#example-131">Example 131</a>
+        <a href="#example-131"><del>Example 131</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -4332,6 +4607,29 @@ aaa
 &lt;/code&gt;&lt;/pre&gt;
 </code></pre
         >
+      </div>
+    </div>
+    <div class="example" id="example-131-2">
+      <div class="examplenum">
+        <a href="#example-131-2"><ins>Example 131-2</ins></a>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-markdown"><span class="space"> </span>```
+<span class="space"> </span>aaa
+aaa
+```
+</code></pre
+        >
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;p&gt; ```
+ aaa
+aaa&lt;/p&gt;
+</code></pre>
       </div>
     </div>
     <div class="example" id="example-132">
@@ -6933,8 +7231,8 @@ bar
       blocks forms a <a id="paragraph" href="#paragraph" class="definition"
       >paragraph</a>. The contents of the paragraph are the result of parsing
       the paragraph’s raw content as inlines. The paragraph’s raw content is
-      formed by concatenating the lines and removing initial and final spaces or
-      tabs.
+      formed by concatenating the lines<del>
+        and removing initial and final spaces or tabs</del>.
     </p>
     <p>A simple example with two paragraphs:</p>
     <div class="example" id="example-219">
@@ -7007,10 +7305,10 @@ bbb
         >
       </div>
     </div>
-    <p>Leading spaces or tabs are skipped:</p>
+    <p>Leading spaces or tabs are <ins>not </ins>skipped:</p>
     <div class="example" id="example-222">
       <div class="examplenum">
-        <a href="#example-222">Example 222</a>
+        <a href="#example-222"><del>Example 222</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7028,13 +7326,34 @@ bbb&lt;/p&gt;
 </code></pre>
       </div>
     </div>
+    <div class="example" id="example-222-2">
+      <div class="examplenum">
+        <a href="#example-222-2"><ins>Example 222-2</ins></a>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-markdown"><span class="space"> </span><span class="space"> </span>aaa
+<span class="space"> </span>bbb
+</code></pre
+        >
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;p&gt;<span class="space"> </span><span class="space"> </span>aaa
+<span class="space"> </span>bbb&lt;/p&gt;
+</code></pre
+        >
+      </div>
+    </div>
     <p>
-      Lines after the first may be indented any amount, since indented code
-      blocks cannot interrupt paragraphs.
+      Lines <del>after the first </del>may be indented any amount<del>, since
+        indented code blocks cannot interrupt paragraphs</del>.
     </p>
     <div class="example" id="example-223">
       <div class="examplenum">
-        <a href="#example-223">Example 223</a>
+        <a href="#example-223"><del>Example 223</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7056,12 +7375,14 @@ ccc&lt;/p&gt;
       </div>
     </div>
     <p>
-      However, the first line may be preceded by up to three spaces of
-      indentation. Four spaces of indentation is too many:
+      <del>
+        However, the first line may be preceded by up to three spaces of
+        indentation. Four spaces of indentation is too many:
+      </del>
     </p>
     <div class="example" id="example-224">
       <div class="examplenum">
-        <a href="#example-224">Example 224</a>
+        <a href="#example-224"><del>Example 224</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7081,7 +7402,7 @@ bbb&lt;/p&gt;
     </div>
     <div class="example" id="example-225">
       <div class="examplenum">
-        <a href="#example-225">Example 225</a>
+        <a href="#example-225"><del>Example 225</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7103,14 +7424,16 @@ bbb
       </div>
     </div>
     <p>
-      Final spaces or tabs are stripped before inline parsing, so a paragraph
-      that ends with two or more spaces will not end with a <a
-        href="#hard-line-break"
-      >hard line break</a>:
+      <del>
+        Final spaces or tabs are stripped before inline parsing, so a paragraph
+        that ends with two or more spaces will not end with a <a
+          href="#hard-line-break"
+        >hard line break</a>:
+      </del>
     </p>
     <div class="example" id="example-226">
       <div class="examplenum">
-        <a href="#example-226">Example 226</a>
+        <a href="#example-226"><del>Example 226</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7145,7 +7468,7 @@ bbb&lt;/p&gt;
     </p>
     <div class="example" id="example-227">
       <div class="examplenum">
-        <a href="#example-227">Example 227</a>
+        <a href="#example-227"><del>Example 227</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7167,6 +7490,64 @@ aaa
         >
 <code class="language-html">&lt;p&gt;aaa&lt;/p&gt;
 &lt;h1&gt;aaa&lt;/h1&gt;
+</code></pre
+        >
+      </div>
+    </div>
+    <div class="example" id="example-227-2">
+      <div class="examplenum">
+        <a href="#example-227-2"><ins>Example 227-2</ins></a>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-markdown">
+
+aaa
+
+
+#<span class="space"> </span>aaa
+
+
+</code></pre
+        >
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;p&gt;aaa&lt;/p&gt;
+&lt;h1&gt;aaa&lt;/h1&gt;
+</code></pre
+        >
+      </div>
+    </div>
+    <p>However, whitespace characters are preserved.</p>
+    <div class="example" id="example-227-3">
+      <div class="examplenum">
+        <a href="#example-227-3"><ins>Example 227-3</ins></a>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-markdown"><span class="space"> </span><span class="space"> </span>
+
+aaa
+<span class="space"> </span><span class="space"> </span>
+
+#<span class="space"> </span>aaa
+
+<span class="space"> </span><span class="space"> </span>
+</code></pre
+        >
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;p&gt;<span class="space"> </span><span class="space"> </span>&lt;/p&gt;
+&lt;p&gt;aaa
+<span class="space"> </span><span class="space"> </span>&lt;/p&gt;
+&lt;h1&gt;aaa&lt;/h1&gt;
+&lt;p&gt;<span class="space"> </span><span class="space"> </span>&lt;/p&gt;
 </code></pre
         >
       </div>
@@ -7207,10 +7588,12 @@ aaa
     </h2>
     <p>
       A <a id="block-quote-marker" href="#block-quote-marker" class="definition"
-      >block quote marker</a>, optionally preceded by up to three spaces of
-      indentation, consists of (a) the character <code>&gt;</code> together with
-      a following space of indentation, or (b) a single character <code
-      >&gt;</code> not followed by a space of indentation.
+      >block quote marker</a>
+      <del>, optionally preceded by up to three spaces of indentation,</del>
+      consists of (a) the character <code>&gt;</code> together with a following
+      space of indentation<ins> and content</ins>, or (b) a single character
+      <code>&gt;</code> not followed by a space of indentation<ins>
+        and followed by a line ending</ins>.
     </p>
     <p>The following rules define <a href="#block-quotes">block quotes</a>:</p>
     <ol>
@@ -7281,11 +7664,13 @@ baz&lt;/p&gt;
       </div>
     </div>
     <p>
-      The space or tab after the <code>&gt;</code> characters can be omitted:
+      <del>
+        The space or tab after the <code>&gt;</code> characters can be omitted:
+      </del>
     </p>
     <div class="example" id="example-229">
       <div class="examplenum">
-        <a href="#example-229">Example 229</a>
+        <a href="#example-229"><del>Example 229</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7310,12 +7695,14 @@ baz&lt;/p&gt;
       </div>
     </div>
     <p>
-      The <code>&gt;</code> characters can be preceded by up to three spaces of
-      indentation:
+      <del>
+        The <code>&gt;</code> characters can be preceded by up to three spaces
+        of indentation:
+      </del>
     </p>
     <div class="example" id="example-230">
       <div class="examplenum">
-        <a href="#example-230">Example 230</a>
+        <a href="#example-230"><del>Example 230</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7339,10 +7726,10 @@ baz&lt;/p&gt;
         >
       </div>
     </div>
-    <p>Four spaces of indentation is too many:</p>
+    <p><del>Four spaces of indentation is too many:</del></p>
     <div class="example" id="example-231">
       <div class="examplenum">
-        <a href="#example-231">Example 231</a>
+        <a href="#example-231"><del>Example 231</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7425,19 +7812,21 @@ foo&lt;/p&gt;
       </div>
     </div>
     <p>
-      Laziness only applies to lines that would have been continuations of
+      Laziness <del>only</del>
+      <ins>always</ins> applies to lines that would have been continuations of
       paragraphs had they been prepended with <a href="#block-quote-marker"
-      >block quote markers</a>. For example, the <code>&gt; </code> cannot be
-      omitted in the second line of
+      >block quote markers</a>.<del>
+        For example, the <code>&gt; </code> cannot be omitted in the second line
+        of</del>
     </p>
     <pre>
 <code class="language-markdown">&gt; foo
 &gt; ---
 </code></pre>
-    <p>without changing the meaning:</p>
+    <p><del>without changing the meaning:</del></p>
     <div class="example" id="example-234">
       <div class="examplenum">
-        <a href="#example-234">Example 234</a>
+        <a href="#example-234"><del>Example 234</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7459,15 +7848,41 @@ foo&lt;/p&gt;
         >
       </div>
     </div>
-    <p>Similarly, if we omit the <code>&gt; </code> in the second line of</p>
+    <div class="example" id="example-234-2">
+      <div class="examplenum">
+        <a href="#example-234-2"><ins>Example 234-2</ins></a>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-markdown">&gt;<span class="space"> </span>foo
+---
+</code></pre
+        >
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;blockquote&gt;
+&lt;p&gt;foo
+---&lt;/p&gt;
+&lt;/blockquote&gt;
+</code></pre
+        >
+      </div>
+    </div>
+    <p>
+      <del>Similarly, if we omit the <code>&gt; </code> in the second line
+        of</del>
+    </p>
     <pre>
 <code class="language-markdown">&gt; - foo
 &gt; - bar
 </code></pre>
-    <p>then the block quote ends after the first line:</p>
+    <p><del>then the block quote ends after the first line:</del></p>
     <div class="example" id="example-235">
       <div class="examplenum">
-        <a href="#example-235">Example 235</a>
+        <a href="#example-235"><del>Example 235</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7494,12 +7909,14 @@ foo&lt;/p&gt;
       </div>
     </div>
     <p>
-      For the same reason, we can’t omit the <code>&gt; </code> in front of
-      subsequent lines of an indented or fenced code block:
+      <del>
+        For the same reason, we can’t omit the <code>&gt; </code> in front of
+        subsequent lines of an indented or fenced code block:
+      </del>
     </p>
     <div class="example" id="example-236">
       <div class="examplenum">
-        <a href="#example-236">Example 236</a>
+        <a href="#example-236"><del>Example 236</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7525,7 +7942,7 @@ foo&lt;/p&gt;
     </div>
     <div class="example" id="example-237">
       <div class="examplenum">
-        <a href="#example-237">Example 237</a>
+        <a href="#example-237"><del>Example 237</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7549,14 +7966,39 @@ foo
         >
       </div>
     </div>
+    <div class="example" id="example-237-2">
+      <div class="examplenum">
+        <a href="#example-237-2"><ins>Example 237-2</ins></a>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-markdown">&gt;<span class="space"> </span>```
+foo
+```
+</code></pre
+        >
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;blockquote&gt;
+&lt;pre&gt;&lt;code&gt;foo
+&lt;/code&gt;&lt;/pre&gt;&lt;/blockquote&gt;
+</code></pre
+        >
+      </div>
+    </div>
     <p>
-      Note that in the following case, we have a <a
-        href="#lazy-continuation-line"
-      >lazy continuation line</a>:
+      <del>
+        Note that in the following case, we have a <a
+          href="#lazy-continuation-line"
+        >lazy continuation line</a>:
+      </del>
     </p>
     <div class="example" id="example-238">
       <div class="examplenum">
-        <a href="#example-238">Example 238</a>
+        <a href="#example-238"><del>Example 238</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7578,16 +8020,18 @@ foo
         >
       </div>
     </div>
-    <p>To see why, note that in</p>
+    <p><del>To see why, note that in</del></p>
     <pre>
 <code class="language-markdown">&gt; foo
 &gt;     - bar
 </code></pre>
     <p>
-      the <code>- bar</code> is indented too far to start a list, and can’t be
-      an indented code block because indented code blocks cannot interrupt
-      paragraphs, so it is <a href="#paragraph-continuation-text"
-      >paragraph continuation text</a>.
+      <del>
+        the <code>- bar</code> is indented too far to start a list, and can’t be
+        an indented code block because indented code blocks cannot interrupt
+        paragraphs, so it is <a href="#paragraph-continuation-text"
+        >paragraph continuation text</a>.
+      </del>
     </p>
     <p>A block quote can be empty:</p>
     <div class="example" id="example-239">
@@ -7611,7 +8055,7 @@ foo
     </div>
     <div class="example" id="example-240">
       <div class="examplenum">
-        <a href="#example-240">Example 240</a>
+        <a href="#example-240"><del>Example 240</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7632,10 +8076,33 @@ foo
         >
       </div>
     </div>
+    <div class="example" id="example-240-2">
+      <div class="examplenum">
+        <a href="#example-240-2"><ins>Example 240-2</ins></a>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-markdown">&gt;
+&gt;<span class="space"> </span><span class="space"> </span>
+&gt;<span class="space"> </span>
+</code></pre
+        >
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;blockquote&gt;
+&lt;p&gt; &lt;/p&gt;
+&lt;/blockquote&gt;
+</code></pre
+        >
+      </div>
+    </div>
     <p>A block quote can have initial or final blank lines:</p>
     <div class="example" id="example-241">
       <div class="examplenum">
-        <a href="#example-241">Example 241</a>
+        <a href="#example-241"><del>Example 241</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7644,6 +8111,29 @@ foo
 <code class="language-markdown">&gt;
 &gt;<span class="space"> </span>foo
 &gt;<span class="space"> </span><span class="space"> </span>
+</code></pre
+        >
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;blockquote&gt;
+&lt;p&gt;foo&lt;/p&gt;
+&lt;/blockquote&gt;
+</code></pre
+        >
+      </div>
+    </div>
+    <div class="example" id="example-241-2">
+      <div class="examplenum">
+        <a href="#example-241-2"><ins>Example 241-2</ins></a>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-markdown">&gt;
+&gt;<span class="space"> </span>foo
+&gt;<span class="space"> </span>
 </code></pre
         >
       </div>
@@ -7722,7 +8212,7 @@ bar&lt;/p&gt;
     <p>To get a block quote with two paragraphs, use:</p>
     <div class="example" id="example-244">
       <div class="examplenum">
-        <a href="#example-244">Example 244</a>
+        <a href="#example-244"><del>Example 244</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7745,10 +8235,34 @@ bar&lt;/p&gt;
         >
       </div>
     </div>
-    <p>Block quotes can interrupt paragraphs:</p>
+    <div class="example" id="example-244-2">
+      <div class="examplenum">
+        <a href="#example-244-2"><ins>Example 244-2</ins></a>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-markdown">&gt;<span class="space"> </span>foo
+&gt;<span class="space"> </span>
+&gt;<span class="space"> </span>bar
+</code></pre
+        >
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;blockquote&gt;
+&lt;p&gt;foo&lt;/p&gt;
+&lt;p&gt;bar&lt;/p&gt;
+&lt;/blockquote&gt;
+</code></pre
+        >
+      </div>
+    </div>
+    <p><del>Block quotes can interrupt paragraphs:</del></p>
     <div class="example" id="example-245">
       <div class="examplenum">
-        <a href="#example-245">Example 245</a>
+        <a href="#example-245"><del>Example 245</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7771,11 +8285,13 @@ bar&lt;/p&gt;
       </div>
     </div>
     <p>
-      In general, blank lines are not needed before or after block quotes:
+      <del>
+        In general, blank lines are not needed before or after block quotes:
+      </del>
     </p>
     <div class="example" id="example-246">
       <div class="examplenum">
-        <a href="#example-246">Example 246</a>
+        <a href="#example-246"><del>Example 246</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7856,7 +8372,7 @@ baz
     </div>
     <div class="example" id="example-249">
       <div class="examplenum">
-        <a href="#example-249">Example 249</a>
+        <a href="#example-249"><del>Example 249</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7914,7 +8430,7 @@ bar&lt;/p&gt;
     </div>
     <div class="example" id="example-251">
       <div class="examplenum">
-        <a href="#example-251">Example 251</a>
+        <a href="#example-251"><del>Example 251</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -7942,15 +8458,47 @@ baz&lt;/p&gt;
         >
       </div>
     </div>
+    <div class="example" id="example-251-2">
+      <div class="examplenum">
+        <a href="#example-251-2"><ins>Example 251-2</ins></a>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-markdown">&gt;<span class="space"> </span>&gt;<span class="space"> </span>&gt;<span class="space"> </span>foo
+&gt;<span class="space"> </span>bar
+&gt;<span class="space"> </span>&gt;<span class="space"> </span>baz
+</code></pre
+        >
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;blockquote&gt;
+&lt;blockquote&gt;
+&lt;blockquote&gt;
+&lt;p&gt;foo
+bar
+baz&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;/blockquote&gt;
+&lt;/blockquote&gt;
+</code></pre
+        >
+      </div>
+    </div>
     <p>
-      When including an indented code block in a block quote, remember that the
-      <a href="#block-quote-marker">block quote marker</a> includes both the
-      <code>&gt;</code> and a following space of indentation. So <em>five
-        spaces</em> are needed after the <code>&gt;</code>:
+      <del>
+        When including an indented code block in a block quote, remember that
+        the
+        <a href="#block-quote-marker">block quote marker</a> includes both the
+        <code>&gt;</code> and a following space of indentation. So <em>five
+          spaces</em> are needed after the <code>&gt;</code>:
+      </del>
     </p>
     <div class="example" id="example-252">
       <div class="examplenum">
-        <a href="#example-252">Example 252</a>
+        <a href="#example-252"><del>Example 252</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
