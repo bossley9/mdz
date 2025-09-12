@@ -1,5 +1,60 @@
 const th = @import("./test_helpers.zig");
 
+test "4.1 43-2" {
+    try th.expectParseRMD(
+        \\---
+    ,
+        \\<hr />
+    );
+}
+
+test "4.1 44" {
+    try th.expectParseRMD(
+        \\+++
+    ,
+        \\<p>+++</p>
+    );
+}
+
+test "4.1 45" {
+    try th.expectParseRMD(
+        \\===
+    ,
+        \\<p>===</p>
+    );
+}
+
+test "4.1 46" {
+    try th.expectParseRMD(
+        \\--
+        \\**
+        \\__
+    ,
+        \\<p>--
+        \\**
+        \\__</p>
+    );
+}
+
+test "4.1 50-2" {
+    try th.expectParseRMD(
+        \\-------------------------------------
+    ,
+        \\<hr />
+    );
+}
+
+// TODO implement lists
+// test "4.1 57-2" {
+//     try th.expectParseRMD(
+//         \\- foo
+//         \\---
+//         \\- bar
+//     ,
+//         \\TODO
+//     );
+// }
+
 test "4.2 62" {
     try th.expectParseRMD(
         \\# foo
@@ -102,20 +157,19 @@ test "4.2 75" {
 //     );
 // }
 
-// TODO implement thematic breaks
-// test "4.2 77-2" {
-//     try th.expectParseRMD(
-//         \\---
-//         \\
-//         \\## foo
-//         \\
-//         \\---
-//     ,
-//         \\<hr />
-//         \\<h2>foo</h2>
-//         \\<hr />
-//     );
-// }
+test "4.2 77-2" {
+    try th.expectParseRMD(
+        \\---
+        \\
+        \\## foo
+        \\
+        \\---
+    ,
+        \\<hr />
+        \\<h2>foo</h2>
+        \\<hr />
+    );
+}
 
 test "4.2 78-2" {
     try th.expectParseRMD(

@@ -1966,16 +1966,18 @@ bar&lt;/p&gt;
       <span class="number">4.1</span>Thematic breaks
     </h2>
     <p>
-      A line consisting of optionally up to three spaces of indentation,
-      followed by a sequence of three or more matching <code>-</code>, <code
-      >_</code>, or <code>*</code> characters, each followed optionally by any
-      number of spaces or tabs, forms a
+      A line consisting of <del>optionally up to three spaces of indentation,
+        followed by a sequence of
+      </del>three or more matching <code>-</code>
+      <del>, <code>_</code>, or <code>*</code> characters, each followed
+        optionally by any number of spaces or tabs,</del>
+      <ins> characters</ins> forms a
       <a id="thematic-break" href="#thematic-break" class="definition"
       >thematic break</a>.
     </p>
     <div class="example" id="example-43">
       <div class="examplenum">
-        <a href="#example-43">Example 43</a>
+        <a href="#example-43"><del>Example 43</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -1991,6 +1993,23 @@ ___
 <code class="language-html">&lt;hr<span class="space"> </span>/&gt;
 &lt;hr<span class="space"> </span>/&gt;
 &lt;hr<span class="space"> </span>/&gt;
+</code></pre
+        >
+      </div>
+    </div>
+    <div class="example" id="example-43-2">
+      <div class="examplenum">
+        <a href="#example-43-2"><ins>Example 43-2</ins></a>
+      </div>
+      <div class="column">
+        <pre>
+<code class="language-markdown">---
+</code></pre>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;hr<span class="space"> </span>/&gt;
 </code></pre
         >
       </div>
@@ -2049,10 +2068,10 @@ __&lt;/p&gt;
 </code></pre>
       </div>
     </div>
-    <p>Up to three spaces of indentation are allowed:</p>
+    <p><del>Up to three spaces of indentation are allowed:</del></p>
     <div class="example" id="example-47">
       <div class="examplenum">
-        <a href="#example-47">Example 47</a>
+        <a href="#example-47"><del>Example 47</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2074,10 +2093,10 @@ __&lt;/p&gt;
         >
       </div>
     </div>
-    <p>Four spaces of indentation is too many:</p>
+    <p><del>Four spaces of indentation is too many:</del></p>
     <div class="example" id="example-48">
       <div class="examplenum">
-        <a href="#example-48">Example 48</a>
+        <a href="#example-48"><del>Example 48</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2098,7 +2117,7 @@ __&lt;/p&gt;
     </div>
     <div class="example" id="example-49">
       <div class="examplenum">
-        <a href="#example-49">Example 49</a>
+        <a href="#example-49"><del>Example 49</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2119,7 +2138,7 @@ __&lt;/p&gt;
     <p>More than three characters may be used:</p>
     <div class="example" id="example-50">
       <div class="examplenum">
-        <a href="#example-50">Example 50</a>
+        <a href="#example-50"><del>Example 50</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2137,10 +2156,29 @@ __&lt;/p&gt;
         >
       </div>
     </div>
-    <p>Spaces and tabs are allowed between the characters:</p>
+    <div class="example" id="example-50-2">
+      <div class="examplenum">
+        <a href="#example-50-2"><ins>Example 50-2</ins></a>
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-markdown">-------------------------------------
+</code></pre
+        >
+      </div>
+      <div class="column">
+        <pre
+        >
+<code class="language-html">&lt;hr<span class="space"> </span>/&gt;
+</code></pre
+        >
+      </div>
+    </div>
+    <p><del>Spaces and tabs are allowed between the characters:</del></p>
     <div class="example" id="example-51">
       <div class="examplenum">
-        <a href="#example-51">Example 51</a>
+        <a href="#example-51"><del>Example 51</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2160,7 +2198,7 @@ __&lt;/p&gt;
     </div>
     <div class="example" id="example-52">
       <div class="examplenum">
-        <a href="#example-52">Example 52</a>
+        <a href="#example-52"><del>Example 52</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2180,7 +2218,7 @@ __&lt;/p&gt;
     </div>
     <div class="example" id="example-53">
       <div class="examplenum">
-        <a href="#example-53">Example 53</a>
+        <a href="#example-53"><del>Example 53</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2198,10 +2236,10 @@ __&lt;/p&gt;
         >
       </div>
     </div>
-    <p>Spaces and tabs are allowed at the end:</p>
+    <p><del>Spaces and tabs are allowed at the end:</del></p>
     <div class="example" id="example-54">
       <div class="examplenum">
-        <a href="#example-54">Example 54</a>
+        <a href="#example-54"><del>Example 54</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2219,10 +2257,10 @@ __&lt;/p&gt;
         >
       </div>
     </div>
-    <p>However, no other characters may occur in the line:</p>
+    <p><del>However, no other characters may occur in the line:</del></p>
     <div class="example" id="example-55">
       <div class="examplenum">
-        <a href="#example-55">Example 55</a>
+        <a href="#example-55"><del>Example 55</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2247,12 +2285,14 @@ a------
       </div>
     </div>
     <p>
-      It is required that all of the characters other than spaces or tabs be the
-      same. So, this is not a thematic break:
+      <del>
+        It is required that all of the characters other than spaces or tabs be
+        the same. So, this is not a thematic break:
+      </del>
     </p>
     <div class="example" id="example-56">
       <div class="examplenum">
-        <a href="#example-56">Example 56</a>
+        <a href="#example-56"><del>Example 56</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2270,10 +2310,13 @@ a------
         >
       </div>
     </div>
-    <p>Thematic breaks do not need blank lines before or after:</p>
+    <p>
+      Thematic breaks <del>do not</del> need blank lines before <del>or</del>
+      <ins>and</ins> after:
+    </p>
     <div class="example" id="example-57">
       <div class="examplenum">
-        <a href="#example-57">Example 57</a>
+        <a href="#example-57"><del>Example 57</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2299,10 +2342,10 @@ a------
         >
       </div>
     </div>
-    <p>Thematic breaks can interrupt a paragraph:</p>
+    <p><del>Thematic breaks can interrupt a paragraph:</del></p>
     <div class="example" id="example-58">
       <div class="examplenum">
-        <a href="#example-58">Example 58</a>
+        <a href="#example-58"><del>Example 58</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2323,17 +2366,19 @@ bar
       </div>
     </div>
     <p>
-      If a line of dashes that meets the above conditions for being a thematic
-      break could also be interpreted as the underline of a <a
-        href="#setext-heading"
-      >setext heading</a>, the interpretation as a
-      <a href="#setext-heading">setext heading</a> takes precedence. Thus, for
-      example, this is a setext heading, not a paragraph followed by a thematic
-      break:
+      <del>
+        If a line of dashes that meets the above conditions for being a thematic
+        break could also be interpreted as the underline of a <a
+          href="#setext-heading"
+        >setext heading</a>, the interpretation as a
+        <a href="#setext-heading">setext heading</a> takes precedence. Thus, for
+        example, this is a setext heading, not a paragraph followed by a
+        thematic break:
+      </del>
     </p>
     <div class="example" id="example-59">
       <div class="examplenum">
-        <a href="#example-59">Example 59</a>
+        <a href="#example-59"><del>Example 59</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2353,12 +2398,14 @@ bar
       </div>
     </div>
     <p>
-      When both a thematic break and a list item are possible interpretations of
-      a line, the thematic break takes precedence:
+      <del>
+        When both a thematic break and a list item are possible interpretations
+        of a line, the thematic break takes precedence:
+      </del>
     </p>
     <div class="example" id="example-60">
       <div class="examplenum">
-        <a href="#example-60">Example 60</a>
+        <a href="#example-60"><del>Example 60</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">
@@ -2384,10 +2431,13 @@ bar
         >
       </div>
     </div>
-    <p>If you want a thematic break in a list item, use a different bullet:</p>
+    <p>
+      <del>If you want a thematic break in a list item, use a different
+        bullet:</del>
+    </p>
     <div class="example" id="example-61">
       <div class="examplenum">
-        <a href="#example-61">Example 61</a>
+        <a href="#example-61"><del>Example 61</del></a>
         <a class="dingus" title="open in interactive dingus">Try It</a>
       </div>
       <div class="column">

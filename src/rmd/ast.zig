@@ -2,6 +2,7 @@ const std = @import("std");
 
 pub const BlockTag = enum {
     document,
+    thematic_break,
     heading,
     paragraph,
     block_quote,
@@ -19,7 +20,7 @@ pub const Block = struct {
         tag: BlockTag,
     ) std.mem.Allocator.Error!Block {
         const has_inlines = switch (tag) {
-            .heading, .paragraph => true,
+            .thematic_break, .heading, .paragraph => true,
             else => false,
         };
         return .{

@@ -17,7 +17,7 @@ fn appendHeadingBlock(allocator: Allocator, block: *ast.Block, line: []u8, level
 
 fn closeChildBlocks(block: *ast.Block) void {
     switch (block.tag) {
-        .heading, .paragraph => {},
+        .thematic_break, .heading, .paragraph => {},
         else => {
             for (block.content.?.items) |*child| {
                 child.open = false;
@@ -46,7 +46,8 @@ fn parseBlock(
             if (child.open) {
                 switch (child.tag) {
                     .document => unreachable,
-                    .heading => {
+                    .thematic_break, .heading => {
+                        // close and continue
                         child.open = false;
                         try parseBlock(allocator, line, block);
                     },
@@ -71,7 +72,10 @@ fn parseBlock(
     }
 
     // new blocks
-    if (line.len > 1 and std.mem.eql(u8, line[0..2], "# ")) { // heading 1
+    if (line.len >= 3 and std.mem.eql(u8, line[0..3], "---")) { // thematic break
+        const thematic_break = try ast.Block.init(allocator, .thematic_break);
+        try block.content.?.append(allocator, thematic_break);
+    } else if (line.len > 1 and std.mem.eql(u8, line[0..2], "# ")) { // heading 1
         try appendHeadingBlock(allocator, block, line, 1);
     } else if (line.len > 2 and std.mem.eql(u8, line[0..3], "## ")) { // heading 2
         try appendHeadingBlock(allocator, block, line, 2);

@@ -14,7 +14,7 @@ pub fn parseRMD(reader: *std.io.Reader, w: *std.io.Writer) ParseRMDError!usize {
     defer {
         for (document.content.?.items) |*child| switch (child.*.tag) {
             .document => unreachable,
-            .heading, .paragraph => {
+            .thematic_break, .heading, .paragraph => {
                 child.inlines.?.deinit(allocator);
             },
             .block_quote => {

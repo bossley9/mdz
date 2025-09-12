@@ -10,6 +10,9 @@ pub fn printDocument(block: *ast.Block, w: *Writer) Writer.Error!void {
                 try printDocument(child, w);
             }
         },
+        .thematic_break => {
+            try w.print("<hr />\n", .{});
+        },
         .heading => {
             try w.print("<h{d}>", .{block.level});
             for (block.inlines.?.items) |c| {
