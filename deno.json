@@ -1,1 +1,9 @@
-{}
+{
+  "name": "@bossley9/rmd",
+  "version": "0.2.0",
+  "exports": {
+    ".": "./src/lib.ts",
+    "./zig-out/bin/rmd.wasm": "./zig-out/bin/rmd.wasm"
+  },
+  "exclude": ["!zig-out/bin/rmd.wasm", "**/*.zig"]
+}
