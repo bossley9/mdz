@@ -1,5 +1,5 @@
 const modPromise = WebAssembly.instantiateStreaming(
-  fetch("rmd.wasm"),
+  fetch("https://rmd.bossley.xyz/rmd.wasm"),
 );
 
 const errorPrefix = "error.";
