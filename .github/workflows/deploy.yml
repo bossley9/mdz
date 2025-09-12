@@ -1,4 +1,4 @@
-name: deploy site and WASM
+name: deploy
 on:
   push:
     tags:
@@ -7,12 +7,17 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: fetch packages
+        run: |
+          sudo apt install hut
+      - name: Checkout
+        uses: actions/checkout@v2
       - name: organize
         run: |
-          mkdir dist
-          cp doc/specification.html dist/index.html
-          cp src/index.js dist/index.js
-          cp zig-out/bin/rmd.wasm dist/rmd.wasm
+          mkdir ./dist
+          cp ${GITHUB_WORKSPACE}/doc/specification.html ./dist/index.html
+          cp ${GITHUB_WORKSPACE}/src/index.js ./dist/index.js
+          cp ${GITHUB_WORKSPACE}/zig-out/bin/rmd.wasm ./dist/rmd.wasm
       - name: zip
         uses: developerdino/action-tar@v1
         with:
