@@ -4,24 +4,30 @@ on:
     tags:
       - "v*"
 jobs:
-  deploy:
+  publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # The OIDC ID token is used for authentication with JSR.
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.15.1
-      - name: fetch external deps
-        run: |
-          sudo apt install hut
-      - name: compile wasm
-        run: zig build wasm
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: 2.5.0
+      - run: |
+          deno run build
+          npx jsr publish
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - name: organize
         run: |
           mkdir dist
           cp ${GITHUB_WORKSPACE}/doc/specification.html dist/index.html
-          cp ${GITHUB_WORKSPACE}/src/index.js dist/index.js
-          cp ${GITHUB_WORKSPACE}/zig-out/bin/rmd.wasm dist/rmd.wasm
       - name: zip
         uses: developerdino/action-tar@v1
         with:
@@ -30,6 +36,7 @@ jobs:
         env:
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
+          sudo apt install hut
           echo "instance \"sr.ht\" {" >> hut_config
           echo "access-token \"$PAT_TOKEN\"" >> hut_config
           echo "}" >> hut_config
