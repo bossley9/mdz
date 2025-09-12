@@ -7,16 +7,14 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.1
       - name: fetch external deps
         run: |
           sudo apt install hut
-      - name: checkout
-        uses: actions/checkout@v2
       - name: compile wasm
-        uses: actions/checkout@v3
-        uses: mlugg/setup-zig@v2
-        with:
-          version: 0.15.1
         run: zig build wasm
       - name: organize
         run: |
