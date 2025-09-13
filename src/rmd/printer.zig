@@ -10,23 +10,28 @@ pub fn printDocument(block: *ast.Block, w: *Writer) Writer.Error!void {
                 try printDocument(child, w);
             }
         },
-        .thematic_break => {
-            try w.print("<hr />\n", .{});
+        .paragraph => {
+            try w.print("<p>", .{});
+            // Valgrind panics when printing char arrays
+            for (block.pending_inlines.?.items) |c| {
+                try w.print("{c}", .{c});
+            }
+            try w.print("</p>\n", .{});
         },
+        .thematic_break => try w.print("<hr />\n", .{}),
         .heading => {
             try w.print("<h{d}>", .{block.level});
-            for (block.inlines.?.items) |c| {
+            for (block.pending_inlines.?.items) |c| {
                 try w.print("{c}", .{c});
             }
             try w.print("</h{d}>\n", .{block.level});
         },
-        .paragraph => {
-            try w.print("<p>", .{});
-            // Valgrind panics when printing char arrays
-            for (block.inlines.?.items) |c| {
+        .code_block => {
+            try w.print("<pre><code>", .{});
+            for (block.pending_inlines.?.items) |c| {
                 try w.print("{c}", .{c});
             }
-            try w.print("</p>\n", .{});
+            try w.print("</code></pre>\n", .{});
         },
         .block_quote => {
             try w.print("<blockquote>\n", .{});

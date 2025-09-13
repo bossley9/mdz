@@ -3,34 +3,38 @@ const ast = @import("./rmd/ast.zig");
 const parser = @import("./rmd/parser.zig");
 const printer = @import("./rmd/printer.zig");
 
-const ParseRMDError = std.io.Reader.DelimiterError || std.mem.Allocator.Error || std.io.Writer.Error;
+const Allocator = std.mem.Allocator;
+const Reader = std.io.Reader;
+const Writer = std.io.Writer;
+
+const ParseRMDError = Reader.DelimiterError || Allocator.Error || Writer.Error;
+
+fn freeBlock(block: *ast.Block, allocator: Allocator) void {
+    if (block.pending_inlines) |*pending_inlines| {
+        pending_inlines.deinit(allocator);
+    }
+    if (block.content) |*content| {
+        for (content.items) |*child| {
+            freeBlock(child, allocator);
+        }
+        content.deinit(allocator);
+    }
+}
 
 /// Given a RMD input reader and an output writer, parse and write the
 /// corresponding HTML string to the writer, then return the number of
 /// bytes written.
-pub fn parseRMD(reader: *std.io.Reader, w: *std.io.Writer) ParseRMDError!usize {
+pub fn parseRMD(r: *Reader, w: *Writer) ParseRMDError!usize {
     const allocator = std.heap.page_allocator;
     var document = try ast.Block.init(allocator, .document);
-    defer {
-        for (document.content.?.items) |*child| switch (child.*.tag) {
-            .document => unreachable,
-            .thematic_break, .heading, .paragraph => {
-                child.inlines.?.deinit(allocator);
-            },
-            .block_quote => {
-                child.content.?.deinit(allocator);
-            },
-        };
-        document.content.?.deinit(allocator);
-    }
+    defer freeBlock(&document, allocator);
 
-    try parser.parseDocument(allocator, reader, &document);
-
+    try parser.parseDocument(allocator, r, &document);
     try printer.printDocument(&document, w);
+
     if (w.end > 0) {
         w.undo(1); // remove final newline from printed output
     }
-
     try w.flush();
     return w.end;
 }
@@ -46,10 +50,10 @@ export fn parseRMDWasm(input_addr: [*]u8, input_len: usize) usize {
     }
 
     const input = input_addr[0..input_len];
-    var reader = std.io.Reader.fixed(input);
+    var reader = Reader.fixed(input);
 
     var output: [std.wasm.page_size]u8 = undefined;
-    var writer = std.io.Writer.fixed(&output);
+    var writer = Writer.fixed(&output);
 
     const len = parseRMD(&reader, &writer) catch |err| blk: {
         writer.print("{any}", .{err}) catch {};

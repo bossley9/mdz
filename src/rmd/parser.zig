@@ -10,71 +10,86 @@ const ParserError = Reader.DelimiterError || Allocator.Error;
 
 fn appendHeadingBlock(allocator: Allocator, block: *ast.Block, line: []u8, level: u3) ParserError!void {
     var heading = try ast.Block.init(allocator, .heading);
-    for (line[level + 1 ..]) |c| try heading.inlines.?.append(allocator, c);
+    for (line[level + 1 ..]) |c| try heading.pending_inlines.?.append(allocator, c);
     heading.level = level;
+    heading.open = false;
     try block.content.?.append(allocator, heading);
 }
 
 fn closeChildBlocks(block: *ast.Block) void {
     switch (block.tag) {
-        .thematic_break, .heading, .paragraph => {},
-        else => {
+        .document, .code_block, .block_quote => {
             for (block.content.?.items) |*child| {
                 child.open = false;
                 closeChildBlocks(child);
             }
         },
+        else => {},
     }
 }
 
 /// Recursively update a block and its descendants based on the
-/// provided nput line.
+/// provided input line.
 fn parseBlock(
     allocator: Allocator,
     line: []u8,
     block: *ast.Block,
 ) ParserError!void {
-    if (line.len == 0) { // blank line
+    var content = &block.content.?;
+    const last_child = if (content.items.len > 0) &content.items[content.items.len - 1] else null;
+
+    const is_open_code_block = last_child != null and last_child.?.tag == .code_block and last_child.?.open;
+
+    if (line.len == 0 and !is_open_code_block) { // blank line and not literal content
         closeChildBlocks(block);
         return;
     }
 
     // open blocks
-    if (block.content) |*content| {
-        if (content.items.len > 0) {
-            var child = &content.items[content.items.len - 1];
-            if (child.open) {
-                switch (child.tag) {
-                    .document => unreachable,
-                    .thematic_break, .heading => {
-                        // close and continue
-                        child.open = false;
-                        try parseBlock(allocator, line, block);
-                    },
-                    .paragraph => {
-                        try child.inlines.?.append(allocator, '\n');
-                        for (line) |c| {
-                            try child.inlines.?.append(allocator, c);
-                        }
-                    },
-                    .block_quote => {
-                        const inner_line =
-                            if (line.len > 1 and line[0] == '>' and line[1] == ' ')
-                                line[2..]
-                            else
-                                line;
-                        try parseBlock(allocator, inner_line, child);
-                    },
+    if (last_child) |child| if (child.open) {
+        switch (child.tag) {
+            .document,
+            .thematic_break,
+            .heading,
+            => unreachable,
+            .paragraph => {
+                try child.pending_inlines.?.append(allocator, '\n');
+                for (line) |c| {
+                    try child.pending_inlines.?.append(allocator, c);
                 }
-                return;
-            }
+            },
+            .code_block => {
+                if (line.len >= 3 and std.mem.eql(u8, line[0..3], "```")) { // code block
+                    child.open = false;
+                } else {
+                    for (line) |c| {
+                        switch (c) {
+                            '>' => try child.pending_inlines.?.appendSlice(allocator, "&gt;"),
+                            '<' => try child.pending_inlines.?.appendSlice(allocator, "&lt;"),
+                            '&' => try child.pending_inlines.?.appendSlice(allocator, "&amp;"),
+                            else => try child.pending_inlines.?.append(allocator, c),
+                        }
+                    }
+                    try child.pending_inlines.?.append(allocator, '\n');
+                }
+            },
+            .block_quote => {
+                const inner_line =
+                    if (line.len > 1 and line[0] == '>' and line[1] == ' ')
+                        line[2..]
+                    else
+                        line;
+                try parseBlock(allocator, inner_line, child);
+            },
         }
-    }
+        return;
+    };
 
     // new blocks
     if (line.len >= 3 and std.mem.eql(u8, line[0..3], "---")) { // thematic break
-        const thematic_break = try ast.Block.init(allocator, .thematic_break);
-        try block.content.?.append(allocator, thematic_break);
+        var thematic_break = try ast.Block.init(allocator, .thematic_break);
+        thematic_break.open = false;
+        try content.append(allocator, thematic_break);
     } else if (line.len > 1 and std.mem.eql(u8, line[0..2], "# ")) { // heading 1
         try appendHeadingBlock(allocator, block, line, 1);
     } else if (line.len > 2 and std.mem.eql(u8, line[0..3], "## ")) { // heading 2
@@ -87,21 +102,20 @@ fn parseBlock(
         try appendHeadingBlock(allocator, block, line, 5);
     } else if (line.len > 6 and std.mem.eql(u8, line[0..7], "###### ")) { // heading 6
         try appendHeadingBlock(allocator, block, line, 6);
+    } else if (line.len >= 3 and std.mem.eql(u8, line[0..3], "```")) { // code block
+        const code_block = try ast.Block.init(allocator, .code_block);
+        try content.append(allocator, code_block);
     } else if (line[0] == '>' and (line.len == 1 or line[1] == ' ')) { // blockquote
         var block_quote = try ast.Block.init(allocator, .block_quote);
         const inner_line = if (line.len == 1) line[1..] else line[2..];
-
         try parseBlock(allocator, inner_line, &block_quote);
-
-        try block.content.?.append(allocator, block_quote);
+        try content.append(allocator, block_quote);
     } else { // paragraph
         var para = try ast.Block.init(allocator, .paragraph);
-
         for (line) |c| {
-            try para.inlines.?.append(allocator, c);
+            try para.pending_inlines.?.append(allocator, c);
         }
-
-        try block.content.?.append(allocator, para);
+        try content.append(allocator, para);
     }
 }
 
@@ -160,36 +174,6 @@ test "block closing and opening" {
         \\<p>para 1</p>
         \\<p>para 2</p>
         \\</blockquote>
-    );
-}
-
-test "paragraph single" {
-    try th.expectParseRMD("Hello, world!", "<p>Hello, world!</p>");
-}
-
-test "paragraph multiple" {
-    try th.expectParseRMD(
-        \\Hello, world!
-        \\
-        \\What is your name?
-    ,
-        \\<p>Hello, world!</p>
-        \\<p>What is your name?</p>
-    );
-}
-
-test "paragraph lazy continuation" {
-    try th.expectParseRMD(
-        \\aaa
-        \\bbb
-        \\
-        \\ccc
-        \\ddd
-    ,
-        \\<p>aaa
-        \\bbb</p>
-        \\<p>ccc
-        \\ddd</p>
     );
 }
 

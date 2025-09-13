@@ -20,24 +20,3 @@ jobs:
       - run: |
           deno run build
           npx jsr publish
-  publish_docs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: organize
-        run: |
-          mkdir dist
-          cp ${GITHUB_WORKSPACE}/doc/specification.html dist/index.html
-      - name: zip
-        uses: developerdino/action-tar@v1
-        with:
-          args: tar -C dist -cvzf site.tar.gz .
-      - name: deploy
-        env:
-          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: |
-          sudo apt install hut
-          echo "instance \"sr.ht\" {" >> hut_config
-          echo "access-token \"$PAT_TOKEN\"" >> hut_config
-          echo "}" >> hut_config
-          hut --config hut_config pages publish -d rmd.bossley.xyz site.tar.gz

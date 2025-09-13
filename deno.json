@@ -9,6 +9,7 @@
   "publish": {
     "include": [
       "./dist",
+      "./doc/specification.md",
       "LICENSE.txt",
       "README.md",
       "deno.json"
