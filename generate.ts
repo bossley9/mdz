@@ -2,14 +2,15 @@ await new Deno.Command("zig", { args: ["build", "wasm"] }).output();
 
 await Deno.mkdir("./dist").catch(() => {}); // ignore if already exists
 
+await Deno.copyFile("./src/lib.d.ts", "./dist/index.d.ts");
+
 const marker = "/*generated_code_flag_marker*/";
 
-const src = await Deno.readTextFile("./src/lib.ts");
-
+const src = await Deno.readTextFile("./src/lib.js");
 const wasm = await Deno.readFile("./zig-out/bin/rmd.wasm");
 
 const output = src.substring(0, src.indexOf(marker)) +
   wasm +
   src.substring(src.indexOf(marker) + marker.length);
 
-await Deno.writeTextFile("./dist/index.ts", output);
+await Deno.writeTextFile("./dist/index.js", output);

@@ -1,11 +1,11 @@
 {
   "name": "@bossley9/rmd",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "tasks": {
     "build": "deno run -A generate.ts",
     "test": "deno run build && deno test --allow-read"
   },
-  "exports": "./dist/index.ts",
+  "exports": "./dist/index.js",
   "publish": {
     "include": [
       "./dist",
