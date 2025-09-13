@@ -1,29 +1,22 @@
-/**
- * @type {WebAssembly.WebAssemblyInstantiatedSource}
- */
-let wasmMod;
+let wasmMod: WebAssembly.WebAssemblyInstantiatedSource | undefined;
 
 /**
  * Given a RMD input string, parse and return the corresponding HTML
  * string. Errors can be thrown.
- * @param {string} input
- * @return {Promise<string>} output
  */
-export async function parseRMD(input) {
+export async function parseRMD(input: string): Promise<string> {
   // unavoidable init time penalty
   if (!wasmMod) {
     wasmMod = await WebAssembly.instantiate(
-      // generated_code_flag_marker
+      Uint8Array.from([/*generated_code_flag_marker*/]),
     );
   }
-  /**
-   * @type {WebAssembly.Memory}
-   */
-  const memory = wasmMod.instance.exports.memory;
-  /**
-   * @type {(addr: number, len: number) => number}
-   */
-  const parseRMDWasm = wasmMod.instance.exports.parseRMDWasm;
+
+  const memory = wasmMod.instance.exports.memory as WebAssembly.Memory;
+  const parseRMDWasm = wasmMod.instance.exports.parseRMDWasm as (
+    addr: number,
+    len: number,
+  ) => number;
 
   // encode input into memory
   const memoryArr = new Uint8Array(memory.buffer);

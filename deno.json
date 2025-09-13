@@ -1,10 +1,17 @@
 {
   "name": "@bossley9/rmd",
-  "version": "0.2.0",
+  "version": "0.3.1",
   "tasks": {
     "build": "deno run -A generate.ts",
     "test": "deno run build && deno test --allow-read"
   },
-  "exports": "./dist/index.js",
-  "exclude": ["**/*.zig"]
+  "exports": "./dist/index.ts",
+  "publish": {
+    "include": [
+      "./dist",
+      "LICENSE.txt",
+      "README.md",
+      "deno.json"
+    ]
+  }
 }
