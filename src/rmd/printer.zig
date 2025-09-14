@@ -27,7 +27,15 @@ pub fn printDocument(block: *ast.Block, w: *Writer) Writer.Error!void {
             try w.print("</h{d}>\n", .{block.level});
         },
         .code_block => {
-            try w.print("<pre><code>", .{});
+            var langLen: usize = 0;
+            while (block.lang[langLen] != 0) : (langLen += 1) {}
+            if (langLen > 0) {
+                try w.print("<pre><code class=\"language-{s}\">", .{
+                    block.lang[0..langLen],
+                });
+            } else {
+                try w.print("<pre><code>", .{});
+            }
             for (block.pending_inlines.?.items) |c| {
                 try w.print("{c}", .{c});
             }

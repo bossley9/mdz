@@ -59,7 +59,7 @@ fn parseBlock(
                 }
             },
             .code_block => {
-                if (line.len >= 3 and std.mem.eql(u8, line[0..3], "```")) { // code block
+                if (line.len >= 3 and std.mem.eql(u8, line[0..3], "```")) {
                     child.open = false;
                 } else {
                     for (line) |c| {
@@ -103,7 +103,13 @@ fn parseBlock(
     } else if (line.len > 6 and std.mem.eql(u8, line[0..7], "###### ")) { // heading 6
         try appendHeadingBlock(allocator, block, line, 6);
     } else if (line.len >= 3 and std.mem.eql(u8, line[0..3], "```")) { // code block
-        const code_block = try ast.Block.init(allocator, .code_block);
+        var code_block = try ast.Block.init(allocator, .code_block);
+        if (line.len > 3) {
+            for (line[3..], 0..) |c, i| {
+                if (i >= code_block.lang.len) break;
+                code_block.lang[i] = c;
+            }
+        }
         try content.append(allocator, code_block);
     } else if (line[0] == '>' and (line.len == 1 or line[1] == ' ')) { // blockquote
         var block_quote = try ast.Block.init(allocator, .block_quote);

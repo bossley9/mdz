@@ -553,3 +553,78 @@ test "4.5.5" {
         \\</code></pre>
     );
 }
+
+test "4.5.6" {
+    try th.expectParseRMD(
+        \\> ```
+        \\> aaa
+        \\
+        \\bbb
+    ,
+        \\<blockquote>
+        \\<pre><code>aaa
+        \\</code></pre>
+        \\</blockquote>
+        \\<p>bbb</p>
+    );
+}
+
+test "4.5.7" {
+    try th.expectParseRMD(
+        \\```
+        \\
+        \\
+        \\```
+    ,
+        \\<pre><code>
+        \\
+        \\</code></pre>
+    );
+}
+
+test "4.5.8" {
+    try th.expectParseRMD(
+        \\```
+        \\```
+    ,
+        \\<pre><code></code></pre>
+    );
+}
+
+test "4.5.9" {
+    try th.expectParseRMD(
+        \\ ```
+        \\ aaa
+        \\aaa
+        \\```
+    ,
+        \\<p> ```
+        \\ aaa
+        \\aaa
+        \\```</p>
+    );
+}
+
+test "4.5.10" {
+    try th.expectParseRMD(
+        \\```ruby
+        \\def foo(x)
+        \\  return 3
+        \\end
+        \\```
+    ,
+        \\<pre><code class="language-ruby">def foo(x)
+        \\  return 3
+        \\end
+        \\</code></pre>
+    );
+}
+
+test "4.5.11" {
+    try th.expectParseRMD(
+        \\```;
+        \\```
+    ,
+        \\<pre><code class="language-;"></code></pre>
+    );
+}

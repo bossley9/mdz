@@ -14,7 +14,8 @@ pub const BlockTag = enum {
 pub const Block = struct {
     tag: BlockTag,
     open: bool,
-    level: u3,
+    level: u3, // heading
+    lang: [20:0]u8, // code block
     pending_inlines: ?std.ArrayList(u8),
     content: ?std.ArrayList(Block),
 
@@ -32,6 +33,7 @@ pub const Block = struct {
             .tag = tag,
             .open = true,
             .level = 0,
+            .lang = .{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
             .pending_inlines = if (has_inlines)
                 try std.ArrayList(u8).initCapacity(allocator, 0)
             else

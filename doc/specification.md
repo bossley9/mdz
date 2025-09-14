@@ -317,8 +317,6 @@ A <dfn>code fence</dfn> is a sequence of three consecutive backtick characters. 
 
 The content of a code block may span multiple lines until the ending code fence is reached. The contents of a code block are treated as literal text, not inlines. In implementation, `<`, `>`, and `&` must be converted to `&lt;`, `&gt;`, and `&amp;` respectively to avoid conflicts with generated HTML markup.
 
-The info string is used to specify the programming language of the code block and is rendered in the `class` attribute of the code string with prefix `language-` in accordance with the [WhatWG recommendation](https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-code-element).
-
 <figure>
   <figcaption>Example 4.5.1</figcaption>
 <pre><code>&grave;&grave;&grave;
@@ -366,4 +364,69 @@ Unclosed code blocks are closed by the end of the document or parent block:
 aaa
 <hr />&lt;pre&gt;&lt;code&gt;aaa
 &lt;/code&gt;&lt;/pre&gt;</code></pre>
+</figure>
+
+<figure>
+  <figcaption>Example 4.5.6</figcaption>
+<pre><code>&gt; &grave;&grave;&grave;
+&gt; aaa<br />
+bbb
+<hr />&lt;blockquote&gt;
+&lt;pre&gt;&lt;code&gt;aaa
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;bbb&lt;/p&gt;</code></pre>
+</figure>
+
+A code block can have blank lines or no content:
+
+<figure>
+  <figcaption>Example 4.5.7</figcaption>
+<pre><code>&grave;&grave;&grave;<br /><br />
+&grave;&grave;&grave;
+<hr />&lt;pre&gt;&lt;code&gt;<br />
+&lt;/code&gt;&lt;/pre&gt;</code></pre>
+</figure>
+
+<figure>
+  <figcaption>Example 4.5.8</figcaption>
+<pre><code>&grave;&grave;&grave;
+&grave;&grave;&grave;
+<hr />&lt;pre&gt;&lt;code&gt;&lt;/code&gt;&lt;/pre&gt;</code></pre>
+</figure>
+
+Fences cannot be indented:
+
+<figure>
+  <figcaption>Example 4.5.9</figcaption>
+<pre><code> &grave;&grave;&grave;
+ aaa
+aaa
+&grave;&grave;&grave;
+<hr />&lt;p&gt; &grave;&grave;&grave;
+ aaa
+aaa
+&grave;&grave;&grave;&lt;/p&gt;</code></pre>
+</figure>
+
+The info string is used to specify the programming language of the code block and is rendered in the `class` attribute of the code string with prefix `language-` in accordance with the [WhatWG recommendation](https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-code-element).
+
+<figure>
+  <figcaption>Example 4.5.10</figcaption>
+<pre><code>&grave;&grave;&grave;ruby
+def foo(x)
+  return 3
+end
+&grave;&grave;&grave;
+<hr />&lt;pre&gt;&lt;code class="language-ruby"&gt;def foo(x)
+  return 3
+end
+&lt;/code&gt;&lt;/pre&gt;</code></pre>
+</figure>
+
+<figure>
+  <figcaption>Example 4.5.11</figcaption>
+<pre><code>&grave;&grave;&grave;;
+&grave;&grave;&grave;
+<hr />&lt;pre&gt;&lt;code class="language-;"&gt;&lt;/code&gt;&lt;/pre&gt;</code></pre>
 </figure>
