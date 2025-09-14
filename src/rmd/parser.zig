@@ -7,20 +7,58 @@ const Writer = std.io.Writer;
 
 const ParserError = Reader.DelimiterError || Allocator.Error;
 
+/// Update a block's inlines based on the provided input string.
+fn parseInlines(
+    allocator: Allocator,
+    block: *ast.Block,
+) ParserError!void {
+    const str = block.inlines.?.items;
+
+    var i: usize = 0;
+    while (i < str.len) : (i += 1) {
+        // always guarantee available child
+        if (block.content.?.items.len == 0) {
+            const text = try ast.Block.init(allocator, .text);
+            try block.content.?.append(allocator, text);
+        }
+        var last_child = &block.content.?.items[block.content.?.items.len - 1];
+
+        if (str[i] == '\\') { // escaped text
+            i += 1;
+            if (i < str.len) {
+                switch (str[i]) {
+                    '>' => try last_child.inlines.?.appendSlice(allocator, "&gt;"),
+                    '<' => try last_child.inlines.?.appendSlice(allocator, "&lt;"),
+                    '&' => try last_child.inlines.?.appendSlice(allocator, "&amp;"),
+                    else => try last_child.inlines.?.append(allocator, str[i]),
+                }
+            }
+        } else { // plain text
+            try last_child.inlines.?.append(allocator, str[i]);
+        }
+    }
+    block.inlines.?.clearAndFree(allocator);
+    try closeChildBlocks(allocator, block);
+}
+
 fn appendHeadingBlock(allocator: Allocator, block: *ast.Block, line: []u8, level: u3) ParserError!void {
     var heading = try ast.Block.init(allocator, .heading);
-    for (line[level + 1 ..]) |c| try heading.pending_inlines.?.append(allocator, c);
+    for (line[level + 1 ..]) |c| try heading.inlines.?.append(allocator, c);
     heading.level = level;
     heading.open = false;
+    try parseInlines(allocator, &heading);
     try block.content.?.append(allocator, heading);
 }
 
-fn closeChildBlocks(block: *ast.Block) void {
+fn closeChildBlocks(allocator: Allocator, block: *ast.Block) ParserError!void {
     switch (block.tag) {
-        .document, .code_block, .block_quote => {
+        .document, .paragraph, .block_quote => {
             for (block.content.?.items) |*child| {
                 child.open = false;
-                closeChildBlocks(child);
+                if (child.tag == .paragraph) {
+                    try parseInlines(allocator, child);
+                }
+                try closeChildBlocks(allocator, child);
             }
         },
         else => {},
@@ -40,7 +78,7 @@ fn parseBlock(
     const is_open_code_block = last_child != null and last_child.?.tag == .code_block and last_child.?.open;
 
     if (line.len == 0 and !is_open_code_block) { // blank line and not literal content
-        closeChildBlocks(block);
+        try closeChildBlocks(allocator, block);
         return;
     }
 
@@ -50,11 +88,13 @@ fn parseBlock(
             .document,
             .thematic_break,
             .heading,
+            // inlines parsed separately
+            .text,
             => unreachable,
             .paragraph => {
-                try child.pending_inlines.?.append(allocator, '\n');
+                try child.inlines.?.append(allocator, '\n');
                 for (line) |c| {
-                    try child.pending_inlines.?.append(allocator, c);
+                    try child.inlines.?.append(allocator, c);
                 }
             },
             .code_block => {
@@ -63,13 +103,13 @@ fn parseBlock(
                 } else {
                     for (line) |c| {
                         switch (c) {
-                            '>' => try child.pending_inlines.?.appendSlice(allocator, "&gt;"),
-                            '<' => try child.pending_inlines.?.appendSlice(allocator, "&lt;"),
-                            '&' => try child.pending_inlines.?.appendSlice(allocator, "&amp;"),
-                            else => try child.pending_inlines.?.append(allocator, c),
+                            '>' => try child.inlines.?.appendSlice(allocator, "&gt;"),
+                            '<' => try child.inlines.?.appendSlice(allocator, "&lt;"),
+                            '&' => try child.inlines.?.appendSlice(allocator, "&amp;"),
+                            else => try child.inlines.?.append(allocator, c),
                         }
                     }
-                    try child.pending_inlines.?.append(allocator, '\n');
+                    try child.inlines.?.append(allocator, '\n');
                 }
             },
             .block_quote => {
@@ -118,7 +158,7 @@ fn parseBlock(
     } else { // paragraph
         var para = try ast.Block.init(allocator, .paragraph);
         for (line) |c| {
-            try para.pending_inlines.?.append(allocator, c);
+            try para.inlines.?.append(allocator, c);
         }
         try content.append(allocator, para);
     }
@@ -159,4 +199,5 @@ pub fn parseDocument(
         Reader.DelimiterError.EndOfStream => {}, // end of input
         else => return err,
     }
+    try closeChildBlocks(allocator, document);
 }

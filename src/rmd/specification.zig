@@ -1,49 +1,53 @@
 const th = @import("./test_helpers.zig");
 
-// TODO inlines
-// test "2.3.1" {
-//     try th.expectParseRMD(
-//         \\\*not bold\*
-//     ,
-//         \\<p>*not bold*</p>
-//     );
-// }
+test "2.3.1" {
+    try th.expectParseRMD(
+        \\\*not bold\*
+    ,
+        \\<p>*not bold*</p>
+    );
+}
 
-// TODO inlines
-// test "2.3.2" {
-//     try th.expectParseRMD(
-//         \\\> not blockquote
-//     ,
-//         \\<p>&gt; not a blockquote</p>
-//     );
-// }
+test "2.3.2" {
+    try th.expectParseRMD(
+        \\\> not a blockquote
+    ,
+        \\<p>&gt; not a blockquote</p>
+    );
+}
 
-// TODO inlines
-// test "2.3.3" {
-//     try th.expectParseRMD(
-//         \\My name is \\ John.
-//     ,
-//         \\<p>My name is \ John.</p>
-//     );
-// }
+test "2.3.3" {
+    try th.expectParseRMD(
+        \\My name is \\ John.
+    ,
+        \\<p>My name is \ John.</p>
+    );
+}
 
-// TODO inlines
-// test "2.3.4" {
-//     try th.expectParseRMD(
-//         \\```zig
-//         \\const str =
-//         \\  \\hello,
-//         \\  \\world!
-//         \\;
-//         \\```
-//     ,
-//         \\<pre><code class="language-zig">const str =
-//         \\  \\hello,
-//         \\  \\world!
-//         \\;
-//         \\</code></pre>
-//     );
-// }
+test "2.3.4" {
+    try th.expectParseRMD(
+        \\\Hello, world!\
+    ,
+        \\<p>Hello, world!</p>
+    );
+}
+
+test "2.3.5" {
+    try th.expectParseRMD(
+        \\```zig
+        \\const str =
+        \\  \\hello,
+        \\  \\world!
+        \\;
+        \\```
+    ,
+        \\<pre><code class="language-zig">const str =
+        \\  \\hello,
+        \\  \\world!
+        \\;
+        \\</code></pre>
+    );
+}
 
 test "4.1.1" {
     try th.expectParseRMD(
@@ -215,14 +219,13 @@ test "4.4.3" {
     );
 }
 
-// TODO inlines
-// test "4.4.4" {
-//     try th.expectParseRMD(
-//         \\\## foo
-//     ,
-//         \\<p>## foo</p>
-//     );
-// }
+test "4.4.4" {
+    try th.expectParseRMD(
+        \\\## foo
+    ,
+        \\<p>## foo</p>
+    );
+}
 
 // TODO inlines
 // test "4.4.5" {

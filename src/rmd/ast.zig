@@ -9,6 +9,8 @@ pub const BlockTag = enum {
     code_block,
     // container blocks
     block_quote,
+    // inlines
+    text,
 };
 
 pub const Block = struct {
@@ -16,17 +18,23 @@ pub const Block = struct {
     open: bool,
     level: u3, // heading
     lang: [20:0]u8, // code block
-    pending_inlines: ?std.ArrayList(u8),
+    inlines: ?std.ArrayList(u8),
     content: ?std.ArrayList(Block),
 
     pub fn init(
         allocator: std.mem.Allocator,
         tag: BlockTag,
     ) std.mem.Allocator.Error!Block {
-        // TODO implement inlines
-        const is_inline = false;
+        const has_children = switch (tag) {
+            .code_block, .text => false,
+            else => true,
+        };
         const has_inlines = switch (tag) {
-            .paragraph, .heading, .code_block => true,
+            .paragraph,
+            .heading,
+            .code_block,
+            .text,
+            => true,
             else => false,
         };
         return .{
@@ -34,14 +42,16 @@ pub const Block = struct {
             .open = true,
             .level = 0,
             .lang = .{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-            .pending_inlines = if (has_inlines)
+            // only for storing temporary inlines
+            // except in the case of .code_block and .text
+            .inlines = if (has_inlines)
                 try std.ArrayList(u8).initCapacity(allocator, 0)
             else
                 null,
-            .content = if (is_inline)
-                null
+            .content = if (has_children)
+                try std.ArrayList(Block).initCapacity(allocator, 0)
             else
-                try std.ArrayList(Block).initCapacity(allocator, 0),
+                null,
         };
     }
 };

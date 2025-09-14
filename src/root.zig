@@ -10,8 +10,8 @@ const Writer = std.io.Writer;
 const ParseRMDError = Reader.DelimiterError || Allocator.Error || Writer.Error;
 
 fn freeBlock(block: *ast.Block, allocator: Allocator) void {
-    if (block.pending_inlines) |*pending_inlines| {
-        pending_inlines.deinit(allocator);
+    if (block.inlines) |*inlines| {
+        inlines.deinit(allocator);
     }
     if (block.content) |*content| {
         for (content.items) |*child| {

@@ -88,7 +88,7 @@ This means that when `>`, `<` are backslash escaped, they must be translated to 
 
 <figure>
   <figcaption>Example 2.3.2</figcaption>
-<pre><code>\&gt; not blockquote
+<pre><code>\&gt; not a blockquote
 <hr />&lt;p&gt;&amp;gt; not a blockquote&lt;/p&gt;</code></pre>
 </figure>
 
@@ -100,10 +100,16 @@ Backslash characters will not appear in the HTML output unless they are escaped.
 <hr />&lt;p&gt;My name is \ John.&lt;/p&gt;</code></pre>
 </figure>
 
+<figure>
+  <figcaption>Example 2.3.4</figcaption>
+<pre><code>\Hello, world!\
+<hr />&lt;p&gt;Hello, world!&lt;/p&gt;</code></pre>
+</figure>
+
 However, backslash rules are ignored within code blocks.
 
 <figure>
-  <figcaption>Example 2.3.4</figcaption>
+  <figcaption>Example 2.3.5</figcaption>
 <pre><code>&grave;&grave;&grave;zig
 const str =
   \\hello,

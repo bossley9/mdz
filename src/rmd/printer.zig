@@ -12,17 +12,16 @@ pub fn printDocument(block: *ast.Block, w: *Writer) Writer.Error!void {
         },
         .paragraph => {
             try w.print("<p>", .{});
-            // Valgrind panics when printing char arrays
-            for (block.pending_inlines.?.items) |c| {
-                try w.print("{c}", .{c});
+            for (block.content.?.items) |*child| {
+                try printDocument(child, w);
             }
             try w.print("</p>\n", .{});
         },
         .thematic_break => try w.print("<hr />\n", .{}),
         .heading => {
             try w.print("<h{d}>", .{block.level});
-            for (block.pending_inlines.?.items) |c| {
-                try w.print("{c}", .{c});
+            for (block.content.?.items) |*child| {
+                try printDocument(child, w);
             }
             try w.print("</h{d}>\n", .{block.level});
         },
@@ -36,7 +35,7 @@ pub fn printDocument(block: *ast.Block, w: *Writer) Writer.Error!void {
             } else {
                 try w.print("<pre><code>", .{});
             }
-            for (block.pending_inlines.?.items) |c| {
+            for (block.inlines.?.items) |c| {
                 try w.print("{c}", .{c});
             }
             try w.print("</code></pre>\n", .{});
@@ -47,6 +46,12 @@ pub fn printDocument(block: *ast.Block, w: *Writer) Writer.Error!void {
                 try printDocument(child, w);
             }
             try w.print("</blockquote>\n", .{});
+        },
+        .text => {
+            // Valgrind panics when printing char arrays
+            for (block.inlines.?.items) |c| {
+                try w.print("{c}", .{c});
+            }
         },
     }
 }
