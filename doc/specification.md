@@ -41,7 +41,6 @@ While CommonMark exists to standardize the original Markdown syntax, the spec is
 * Indented code blocks cannot interrupt paragraphs, but paragraphs can interrupt indented code blocks.
 * There are "tight" and "loose" lists depending on the spacing between each line item.
 * Paragraphs (and other blocks) can be indented up to 3 spaces and the leading whitespace will be trimmed, but 4 spaces makes the paragraph a code block.
-* Paragraphs can be [lazily continued](https://spec.commonmark.org/0.31.2/#lazy-continuation-line) while other leaf blocks (like headings) cannot.
 
 This specification exists to clarify these edge cases and remove ambiguity.
 
@@ -178,6 +177,18 @@ Whitespace (and newlines) are preserved.
  bbb
 <hr />&lt;p&gt;  aaa
  bbb&lt;/p&gt;</code></pre>
+</figure>
+
+<figure>
+  <figcaption>Example 4.2.5</figcaption>
+<pre><code>  <br/>
+aaa
+  <br /><br /># aaa<br />
+  <br /><hr />&lt;p&gt;  &lt;/p&gt;
+&lt;p&gt;aaa
+  &lt;/p&gt;
+&lt;h1&gt;aaa&lt;/h1&gt;
+&lt;p&gt;  &lt;/p&gt;</code></pre>
 </figure>
 
 ### 4.3. Thematic Breaks
@@ -429,4 +440,199 @@ end
 <pre><code>&grave;&grave;&grave;;
 &grave;&grave;&grave;
 <hr />&lt;pre&gt;&lt;code class="language-;"&gt;&lt;/code&gt;&lt;/pre&gt;</code></pre>
+</figure>
+
+## 5. Container Blocks
+
+### 5.1. Block Quotes
+
+A <dfn>block quote marker</dfn> consists of either a `>` character followed by one space followed by content, or a single `>` character followed by a line ending. Block quote markers indicate that the following content should be nested within a block quote.
+
+<figure>
+  <figcaption>Example 5.1.0</figcaption>
+<pre><code>&gt; hello
+<hr />&lt;blockquote&gt;
+&lt;p&gt;hello&lt;/p&gt;
+&lt;/blockquote&gt;</code></pre>
+</figure>
+
+<figure>
+  <figcaption>Example 5.1.1</figcaption>
+<pre><code>&gt; # Foo
+&gt; bar
+&gt; baz
+<hr />&lt;blockquote&gt;
+&lt;h1&gt;Foo&lt;/h1&gt;
+&lt;p&gt;bar
+baz&lt;/p&gt;
+&lt;/blockquote&gt;</code></pre>
+</figure>
+
+Similar to paragraphs, block quotes can lazily continue.
+
+<figure>
+  <figcaption>Example 5.1.2</figcaption>
+<pre><code>&gt; # Foo
+&gt; bar
+baz
+<hr />&lt;blockquote&gt;
+&lt;h1&gt;Foo&lt;/h1&gt;
+&lt;p&gt;bar
+baz&lt;/p&gt;
+&lt;/blockquote&gt;</code></pre>
+</figure>
+
+<figure>
+  <figcaption>Example 5.1.3</figcaption>
+<pre><code>&gt; bar
+baz
+&gt; foo
+<hr />&lt;blockquote&gt;
+&lt;p&gt;bar
+baz
+foo&lt;/p&gt;
+&lt;/blockquote&gt;</code></pre>
+</figure>
+
+Laziness always applies to lines that would have been continuations of paragraphs had they been prepended with block quote markers.
+
+<figure>
+  <figcaption>Example 5.1.4</figcaption>
+<pre><code>&gt; foo<br />---
+<hr />&lt;blockquote&gt;
+&lt;p&gt;foo<br />---&lt;/p&gt;
+&lt;/blockquote&gt;</code></pre>
+</figure>
+
+<figure>
+  <figcaption>Example 5.1.5</figcaption>
+<pre><code>&gt; &grave;&grave;&grave;
+foo
+&grave;&grave;&grave;
+<hr />&lt;blockquote&gt;
+&lt;pre&gt;&lt;code&gt;foo
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/blockquote&gt;</code></pre>
+</figure>
+
+A block quote can be empty.
+
+<figure>
+  <figcaption>Example 5.1.6</figcaption>
+<pre><code>&gt;
+<hr />&lt;blockquote&gt;
+&lt;/blockquote&gt;</code></pre>
+</figure>
+
+<figure>
+  <figcaption>Example 5.1.7</figcaption>
+<pre><code>&gt;
+&gt;  
+&gt; 
+<hr />&lt;blockquote&gt;
+&lt;p&gt; &lt;/p&gt;
+&lt;/blockquote&gt;</code></pre>
+</figure>
+
+<figure>
+  <figcaption>Example 5.1.8</figcaption>
+<pre><code>&gt;
+&gt; foo
+&gt; 
+<hr />&lt;blockquote&gt;
+&lt;p&gt;foo&lt;/p&gt;
+&lt;/blockquote&gt;</code></pre>
+</figure>
+
+A blank line must separate block quotes.
+
+<figure>
+  <figcaption>Example 5.1.9</figcaption>
+<pre><code>&gt; foo<br />
+&gt; bar
+<hr />&lt;blockquote&gt;
+&lt;p&gt;foo&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;blockquote&gt;
+&lt;p&gt;bar&lt;/p&gt;
+&lt;/blockquote&gt;</code></pre>
+</figure>
+
+When we put these block quotes together, we get a single block quote.
+
+<figure>
+  <figcaption>Example 5.1.10</figcaption>
+<pre><code>&gt; foo
+&gt; bar
+<hr />&lt;blockquote&gt;
+&lt;p&gt;foo
+bar&lt;/p&gt;
+&lt;/blockquote&gt;</code></pre>
+</figure>
+
+To get a block quote with two paragraphs:
+
+<figure>
+  <figcaption>Example 5.1.11</figcaption>
+<pre><code>&gt; foo
+&gt; 
+&gt; bar
+<hr />&lt;blockquote&gt;
+&lt;p&gt;foo&lt;/p&gt;
+&lt;p&gt;bar&lt;/p&gt;
+&lt;/blockquote&gt;</code></pre>
+</figure>
+
+Laziness requiresa blank line between a block quote and a paragraph.
+
+<figure>
+  <figcaption>Example 5.1.12</figcaption>
+<pre><code>&gt; bar
+baz
+<hr />&lt;blockquote&gt;
+&lt;p&gt;bar
+baz&lt;/p&gt;
+&lt;/blockquote&gt;</code></pre>
+</figure>
+
+<figure>
+  <figcaption>Example 5.1.13</figcaption>
+<pre><code>&gt; bar<br />
+baz
+<hr />&lt;blockquote&gt;
+&lt;p&gt;bar&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;baz&lt;/p&gt;</code></pre>
+</figure>
+
+A consequence of the laziness rule is that any number of block quote markers may be omitted on a continuation of a nested quote.
+
+<figure>
+  <figcaption>Example 5.1.14</figcaption>
+<pre><code>&gt; &gt; &gt; foo
+bar
+<hr />&lt;blockquote&gt;
+&lt;blockquote&gt;
+&lt;blockquote&gt;
+&lt;p&gt;foo
+bar&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;/blockquote&gt;
+&lt;/blockquote&gt;</code></pre>
+</figure>
+
+<figure>
+  <figcaption>Example 5.1.15</figcaption>
+<pre><code>&gt; &gt; &gt; foo
+&gt; bar
+&gt; &gt; baz
+<hr />&lt;blockquote&gt;
+&lt;blockquote&gt;
+&lt;blockquote&gt;
+&lt;p&gt;foo
+bar
+baz&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;/blockquote&gt;
+&lt;/blockquote&gt;</code></pre>
 </figure>

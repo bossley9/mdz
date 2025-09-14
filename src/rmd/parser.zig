@@ -1,6 +1,5 @@
 const std = @import("std");
 const ast = @import("./ast.zig");
-const th = @import("./test_helpers.zig");
 
 const Allocator = std.mem.Allocator;
 const Reader = std.io.Reader;
@@ -160,65 +159,4 @@ pub fn parseDocument(
         Reader.DelimiterError.EndOfStream => {}, // end of input
         else => return err,
     }
-}
-
-test "block closing and opening" {
-    try th.expectParseRMD(
-        \\> test
-        \\lazy continuation
-        \\
-        \\>
-        \\> para 1
-        \\> 
-        \\> para 2
-    ,
-        \\<blockquote>
-        \\<p>test
-        \\lazy continuation</p>
-        \\</blockquote>
-        \\<blockquote>
-        \\<p>para 1</p>
-        \\<p>para 2</p>
-        \\</blockquote>
-    );
-}
-
-test "blockquote empty" {
-    try th.expectParseRMD(
-        \\>
-    ,
-        \\<blockquote>
-        \\</blockquote>
-    );
-}
-
-test "blockquote empty with space" {
-    try th.expectParseRMD(
-        \\> 
-    ,
-        \\<blockquote>
-        \\</blockquote>
-    );
-}
-
-test "blockquote single line" {
-    try th.expectParseRMD(
-        \\> This is a block quote.
-    ,
-        \\<blockquote>
-        \\<p>This is a block quote.</p>
-        \\</blockquote>
-    );
-}
-
-test "blockquote lazy continuation" {
-    try th.expectParseRMD(
-        \\> Hello,
-        \\ world!
-    ,
-        \\<blockquote>
-        \\<p>Hello,
-        \\ world!</p>
-        \\</blockquote>
-    );
 }

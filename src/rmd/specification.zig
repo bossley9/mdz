@@ -1,236 +1,5 @@
 const th = @import("./test_helpers.zig");
 
-// TODO implement lists
-// test "4.1 57-2" {
-//     try th.expectParseRMD(
-//         \\- foo
-//         \\---
-//         \\- bar
-//     ,
-//         \\TODO
-//     );
-// }
-
-test "4.9 227-3" {
-    try th.expectParseRMD(
-        \\  
-        \\
-        \\aaa
-        \\  
-        \\
-        \\# aaa
-        \\
-        \\  
-    ,
-        \\<p>  </p>
-        \\<p>aaa
-        \\  </p>
-        \\<h1>aaa</h1>
-        \\<p>  </p>
-    );
-}
-
-test "5.1 228" {
-    try th.expectParseRMD(
-        \\> # Foo
-        \\> bar
-        \\> baz
-    ,
-        \\<blockquote>
-        \\<h1>Foo</h1>
-        \\<p>bar
-        \\baz</p>
-        \\</blockquote>
-    );
-}
-
-test "5.1 232" {
-    try th.expectParseRMD(
-        \\> # Foo
-        \\> bar
-        \\baz
-    ,
-        \\<blockquote>
-        \\<h1>Foo</h1>
-        \\<p>bar
-        \\baz</p>
-        \\</blockquote>
-    );
-}
-
-test "5.1 233" {
-    try th.expectParseRMD(
-        \\> bar
-        \\baz
-        \\> foo
-    ,
-        \\<blockquote>
-        \\<p>bar
-        \\baz
-        \\foo</p>
-        \\</blockquote>
-    );
-}
-
-test "5.1 234-2" {
-    try th.expectParseRMD(
-        \\> foo
-        \\---
-    ,
-        \\<blockquote>
-        \\<p>foo
-        \\---</p>
-        \\</blockquote>
-    );
-}
-
-// TODO implement code block
-// test "5.1 237-2" {
-//     try th.expectParseRMD(
-//         \\> ```
-//         \\foo
-//         \\```
-//     ,
-//         \\<blockquote>
-//         \\<pre><code>foo
-//         \\</code></pre></blockquote>
-//     );
-// }
-
-test "5.1 239" {
-    try th.expectParseRMD(
-        \\>
-    ,
-        \\<blockquote>
-        \\</blockquote>
-    );
-}
-
-test "5.1 240-2" {
-    try th.expectParseRMD(
-        \\>
-        \\>  
-        \\> 
-    ,
-        \\<blockquote>
-        \\<p> </p>
-        \\</blockquote>
-    );
-}
-
-test "5.1 241-2" {
-    try th.expectParseRMD(
-        \\>
-        \\> foo
-        \\> 
-    ,
-        \\<blockquote>
-        \\<p>foo</p>
-        \\</blockquote>
-    );
-}
-
-test "5.1 242" {
-    try th.expectParseRMD(
-        \\> foo
-        \\
-        \\> bar
-    ,
-        \\<blockquote>
-        \\<p>foo</p>
-        \\</blockquote>
-        \\<blockquote>
-        \\<p>bar</p>
-        \\</blockquote>
-    );
-}
-
-test "5.1 243" {
-    try th.expectParseRMD(
-        \\> foo
-        \\> bar
-    ,
-        \\<blockquote>
-        \\<p>foo
-        \\bar</p>
-        \\</blockquote>
-    );
-}
-
-test "5.1 244-2" {
-    try th.expectParseRMD(
-        \\> foo
-        \\> 
-        \\> bar
-    ,
-        \\<blockquote>
-        \\<p>foo</p>
-        \\<p>bar</p>
-        \\</blockquote>
-    );
-}
-
-test "5.1 247" {
-    try th.expectParseRMD(
-        \\> bar
-        \\baz
-    ,
-        \\<blockquote>
-        \\<p>bar
-        \\baz</p>
-        \\</blockquote>
-    );
-}
-
-test "5.1 248" {
-    try th.expectParseRMD(
-        \\> bar
-        \\
-        \\baz
-    ,
-        \\<blockquote>
-        \\<p>bar</p>
-        \\</blockquote>
-        \\<p>baz</p>
-    );
-}
-
-test "5.1 250" {
-    try th.expectParseRMD(
-        \\> > > foo
-        \\bar
-    ,
-        \\<blockquote>
-        \\<blockquote>
-        \\<blockquote>
-        \\<p>foo
-        \\bar</p>
-        \\</blockquote>
-        \\</blockquote>
-        \\</blockquote>
-    );
-}
-
-test "5.1 251-2" {
-    try th.expectParseRMD(
-        \\> > > foo
-        \\> bar
-        \\> > baz
-    ,
-        \\<blockquote>
-        \\<blockquote>
-        \\<blockquote>
-        \\<p>foo
-        \\bar
-        \\baz</p>
-        \\</blockquote>
-        \\</blockquote>
-        \\</blockquote>
-    );
-}
-
-// -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 // TODO inlines
 // test "2.3.1" {
 //     try th.expectParseRMD(
@@ -346,6 +115,25 @@ test "4.2.4" {
     ,
         \\<p>  aaa
         \\ bbb</p>
+    );
+}
+
+test "4.2.5" {
+    try th.expectParseRMD(
+        \\  
+        \\
+        \\aaa
+        \\  
+        \\
+        \\# aaa
+        \\
+        \\  
+    ,
+        \\<p>  </p>
+        \\<p>aaa
+        \\  </p>
+        \\<h1>aaa</h1>
+        \\<p>  </p>
     );
 }
 
@@ -626,5 +414,214 @@ test "4.5.11" {
         \\```
     ,
         \\<pre><code class="language-;"></code></pre>
+    );
+}
+
+test "5.1.0" {
+    try th.expectParseRMD(
+        \\> hello
+    ,
+        \\<blockquote>
+        \\<p>hello</p>
+        \\</blockquote>
+    );
+}
+
+test "5.1.1" {
+    try th.expectParseRMD(
+        \\> # Foo
+        \\> bar
+        \\> baz
+    ,
+        \\<blockquote>
+        \\<h1>Foo</h1>
+        \\<p>bar
+        \\baz</p>
+        \\</blockquote>
+    );
+}
+
+test "5.1.2" {
+    try th.expectParseRMD(
+        \\> # Foo
+        \\> bar
+        \\baz
+    ,
+        \\<blockquote>
+        \\<h1>Foo</h1>
+        \\<p>bar
+        \\baz</p>
+        \\</blockquote>
+    );
+}
+
+test "5.1.3" {
+    try th.expectParseRMD(
+        \\> bar
+        \\baz
+        \\> foo
+    ,
+        \\<blockquote>
+        \\<p>bar
+        \\baz
+        \\foo</p>
+        \\</blockquote>
+    );
+}
+
+test "5.1.4" {
+    try th.expectParseRMD(
+        \\> foo
+        \\---
+    ,
+        \\<blockquote>
+        \\<p>foo
+        \\---</p>
+        \\</blockquote>
+    );
+}
+
+test "5.1.5" {
+    try th.expectParseRMD(
+        \\> ```
+        \\foo
+        \\```
+    ,
+        \\<blockquote>
+        \\<pre><code>foo
+        \\</code></pre>
+        \\</blockquote>
+    );
+}
+
+test "5.1.6" {
+    try th.expectParseRMD(
+        \\>
+    ,
+        \\<blockquote>
+        \\</blockquote>
+    );
+}
+
+test "5.1.7" {
+    try th.expectParseRMD(
+        \\>
+        \\>  
+        \\> 
+    ,
+        \\<blockquote>
+        \\<p> </p>
+        \\</blockquote>
+    );
+}
+
+test "5.1.8" {
+    try th.expectParseRMD(
+        \\>
+        \\> foo
+        \\> 
+    ,
+        \\<blockquote>
+        \\<p>foo</p>
+        \\</blockquote>
+    );
+}
+
+test "5.1.9" {
+    try th.expectParseRMD(
+        \\> foo
+        \\
+        \\> bar
+    ,
+        \\<blockquote>
+        \\<p>foo</p>
+        \\</blockquote>
+        \\<blockquote>
+        \\<p>bar</p>
+        \\</blockquote>
+    );
+}
+
+test "5.1.10" {
+    try th.expectParseRMD(
+        \\> foo
+        \\> bar
+    ,
+        \\<blockquote>
+        \\<p>foo
+        \\bar</p>
+        \\</blockquote>
+    );
+}
+
+test "5.1.11" {
+    try th.expectParseRMD(
+        \\> foo
+        \\> 
+        \\> bar
+    ,
+        \\<blockquote>
+        \\<p>foo</p>
+        \\<p>bar</p>
+        \\</blockquote>
+    );
+}
+
+test "5.1.12" {
+    try th.expectParseRMD(
+        \\> bar
+        \\baz
+    ,
+        \\<blockquote>
+        \\<p>bar
+        \\baz</p>
+        \\</blockquote>
+    );
+}
+
+test "5.1.13" {
+    try th.expectParseRMD(
+        \\> bar
+        \\
+        \\baz
+    ,
+        \\<blockquote>
+        \\<p>bar</p>
+        \\</blockquote>
+        \\<p>baz</p>
+    );
+}
+
+test "5.1.14" {
+    try th.expectParseRMD(
+        \\> > > foo
+        \\bar
+    ,
+        \\<blockquote>
+        \\<blockquote>
+        \\<blockquote>
+        \\<p>foo
+        \\bar</p>
+        \\</blockquote>
+        \\</blockquote>
+        \\</blockquote>
+    );
+}
+
+test "5.1.15" {
+    try th.expectParseRMD(
+        \\> > > foo
+        \\> bar
+        \\> > baz
+    ,
+        \\<blockquote>
+        \\<blockquote>
+        \\<blockquote>
+        \\<p>foo
+        \\bar
+        \\baz</p>
+        \\</blockquote>
+        \\</blockquote>
+        \\</blockquote>
     );
 }
