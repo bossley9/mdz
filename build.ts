@@ -39,4 +39,4 @@ const generatedDoc = doc
   .filter((line) => line !== null)
   .join("\n");
 
-await Deno.writeTextFile("./dist/specification.md", generatedDoc);
+await Deno.writeTextFile("./README.md", generatedDoc);

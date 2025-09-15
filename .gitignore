@@ -1,4 +1,5 @@
 dist/
+README.md
 zig-out/
 .zig-cache/
 vgcore.*

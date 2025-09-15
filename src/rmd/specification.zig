@@ -1,6 +1,14 @@
 // # Refined Markdown Spec
 const th = @import("./test_helpers.zig");
 
+// An smart subset of CommonMark with added popular extensions implemented in Zig for CLI and WASM.
+
+// ```javascript
+// import { parseRMD } from "jsr:@bossley9/rmd";
+//
+// await parseRMD("# Hello, world!"); // produces "<h1>Hello, world!</h1>"
+// ```
+
 // <small>
 //   This specification is based loosely on the <a href="https://spec.commonmark.org/0.31.2/">CommonMark 0.31.2 specification</a> and draws inspiration from the <a href="https://github.github.com/gfm/">Github-Flavored Markdown 0.29 specification</a> and from the <a href="https://github.com/markdown-it/markdown-it">markdown-it</a> library and its various extensions.
 // </small>
