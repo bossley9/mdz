@@ -1,7 +1,7 @@
-// # Refined Markdown Spec
+// # Refined Markdown (RMD)
 const th = @import("./test_helpers.zig");
 
-// An smart subset of CommonMark with added popular extensions implemented in Zig for CLI and WASM.
+// An smart subset of CommonMark with added popular extensions implemented in Zig for WASM.
 
 // ```javascript
 // import { parseRMD } from "jsr:@bossley9/rmd";
@@ -45,11 +45,13 @@ const th = @import("./test_helpers.zig");
 //      **  * ** * ** * **
 //     -     -      -      -
 //     ```
-// * There are two ways to write code blocks: fenced code blocks and indented code blocks.
-// * There are two ways to write headings: Setext headings and ATX headings.
+// * There are two ways to write code blocks: [fenced code blocks](https://spec.commonmark.org/0.31.2/#fenced-code-blocks) and [indented code blocks](https://spec.commonmark.org/0.31.2/#indented-code-blocks).
+// * There are two ways to write headings: [Setext headings](https://spec.commonmark.org/0.31.2/#setext-headings) and [ATX headings](https://spec.commonmark.org/0.31.2/#atx-headings).
 // * Indented code blocks cannot interrupt paragraphs, but paragraphs can interrupt indented code blocks.
-// * There are "tight" and "loose" lists depending on the spacing between each line item.
+// * There are ["tight" and "loose" lists](https://spec.commonmark.org/0.31.2/#loose) depending on the spacing between each line item.
 // * Paragraphs (and other blocks) can be indented up to 3 spaces and the leading whitespace will be trimmed, but 4 spaces makes the paragraph a code block.
+// * Whitespace is preserved in the middle of text content, but not between blocks or at the start or end of text.
+// * Code spans cannot be escaped with a backslash but other inlines can be escaped.
 
 // This specification exists to clarify these edge cases and remove ambiguity.
 
@@ -723,6 +725,61 @@ test "4.5.11" {
 }
 // ```
 
+// ### 4.6. HTML Blocks
+
+// Similar to a code block, an HTML block is a block that is treated as literal text. The key differences are that HTML markup markers (`<`, `>`, and `&`) are not escaped, and that an HTML block ends when a blank line is reached.
+
+// An HTML block begins with a `<` character immediately followed by any alphabetic character.
+
+// ```zig
+test "4.6.1" {
+    const input =
+        \\<div>foo</div>
+    ;
+    const output =
+        \\<div>foo</div>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
+// ```zig
+test "4.6.2" {
+    const input =
+        \\<p>custom</p>
+        \\<p>HTML elements</p>
+        \\<p>here</p>
+    ;
+    const output =
+        \\<p>custom</p>
+        \\<p>HTML elements</p>
+        \\<p>here</p>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
+// ```zig
+test "4.6.3" {
+    const input =
+        \\# foo
+        \\
+        \\<details>
+        \\<summary>open</summary>
+        \\secrets
+        \\</details>
+    ;
+    const output =
+        \\<h1>foo</h1>
+        \\<details>
+        \\<summary>open</summary>
+        \\secrets
+        \\</details>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
 // ## 5. Container Blocks
 
 // ### 5.1. Block Quotes
@@ -767,6 +824,7 @@ test "5.1.2" {
 test "5.1.3" {
     const input =
         \\> # Foo
+        \\>
         \\> bar
         \\baz
     ;
@@ -1013,6 +1071,66 @@ test "5.1.16" {
         \\</blockquote>
         \\</blockquote>
         \\</blockquote>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
+// ## 6. Inlines
+
+// Inlines are parsed left to right as they appear.
+
+// ### 6.1. Text
+
+// Text is inline plain text content that cannot be interpreted as any other inline. Note that like in any other blocks and inlines, special characters can be escaped with a backslash.
+
+// ```zig
+test "6.1.1" {
+    const input =
+        \\hello $.;'there
+    ;
+    const output =
+        \\<p>hello $.;'there</p>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
+// ```zig
+test "6.1.2" {
+    const input =
+        \\Foo χρῆν
+    ;
+    const output =
+        \\<p>Foo χρῆν</p>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
+// ```zig
+test "6.1.3" {
+    const input =
+        \\Multiple     spaces
+    ;
+    const output =
+        \\<p>Multiple     spaces</p>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
+// ### 6.2. HTML Inlines
+
+// In RMD, any character that does not start a block or inline is passed through as-is. This means that HTML tags will also be passed through to the output.
+
+// ```zig
+test "6.2.1" {
+    const input =
+        \\Writing <abbr>HTML</abbr> (Hyper Text Markup Language) is a breeze!
+    ;
+    const output =
+        \\<p>Writing <abbr>HTML</abbr> (Hyper Text Markup Language) is a breeze!</p>
     ;
     try th.expectParseRMD(input, output);
 }

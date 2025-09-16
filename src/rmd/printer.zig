@@ -47,7 +47,7 @@ pub fn printDocument(block: *ast.Block, w: *Writer) Writer.Error!void {
             }
             try w.print("</blockquote>\n", .{});
         },
-        .text => {
+        .html_block, .text => {
             // Valgrind panics when printing char arrays
             for (block.inlines.?.items) |c| {
                 try w.print("{c}", .{c});

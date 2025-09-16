@@ -112,9 +112,17 @@ fn parseBlock(
                     try child.inlines.?.append(allocator, '\n');
                 }
             },
+            .html_block => {
+                for (line) |c| {
+                    try child.inlines.?.append(allocator, c);
+                }
+                try child.inlines.?.append(allocator, '\n');
+            },
             .block_quote => {
                 const inner_line =
-                    if (line.len > 1 and line[0] == '>' and line[1] == ' ')
+                    if (line.len == 1 and line[0] == '>')
+                        line[1..]
+                    else if (line.len > 1 and line[0] == '>' and line[1] == ' ')
                         line[2..]
                     else
                         line;
@@ -155,6 +163,13 @@ fn parseBlock(
         const inner_line = if (line.len == 1) line[1..] else line[2..];
         try parseBlock(allocator, inner_line, &block_quote);
         try content.append(allocator, block_quote);
+    } else if (line.len > 1 and line[0] == '<' and std.ascii.isAlphabetic(line[1])) { // HTML block
+        var html_block = try ast.Block.init(allocator, .html_block);
+        for (line) |c| {
+            try html_block.inlines.?.append(allocator, c);
+        }
+        try html_block.inlines.?.append(allocator, '\n');
+        try content.append(allocator, html_block);
     } else { // paragraph
         var para = try ast.Block.init(allocator, .paragraph);
         for (line) |c| {

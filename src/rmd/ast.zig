@@ -7,6 +7,7 @@ pub const BlockTag = enum {
     thematic_break,
     heading,
     code_block,
+    html_block,
     // container blocks
     block_quote,
     // inlines
@@ -32,7 +33,9 @@ pub const Block = struct {
         const has_inlines = switch (tag) {
             .paragraph,
             .heading,
+            // literals
             .code_block,
+            .html_block,
             .text,
             => true,
             else => false,
@@ -43,7 +46,7 @@ pub const Block = struct {
             .level = 0,
             .lang = .{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
             // only for storing temporary inlines
-            // except in the case of .code_block and .text
+            // except in the case of literals
             .inlines = if (has_inlines)
                 try std.ArrayList(u8).initCapacity(allocator, 0)
             else
