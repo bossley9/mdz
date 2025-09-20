@@ -52,7 +52,7 @@ fn appendHeadingBlock(allocator: Allocator, block: *ast.Block, line: []u8, level
 
 fn closeChildBlocks(allocator: Allocator, block: *ast.Block) ParserError!void {
     switch (block.tag) {
-        .document, .paragraph, .block_quote => {
+        .document, .paragraph, .block_quote, .list, .list_item => {
             for (block.content.?.items) |*child| {
                 child.open = false;
                 if (child.tag == .paragraph) {
@@ -83,15 +83,20 @@ fn parseBlock(
     }
 
     // open blocks
-    if (last_child) |child| if (child.open) {
+    if (last_child) |child| if (child.open) open_blk: {
         switch (child.tag) {
             .document,
             .thematic_break,
             .heading,
+            .list_item, // pass through
             // inlines parsed separately
             .text,
             => unreachable,
             .paragraph => {
+                if (block.tag == .list_item) {
+                    try child.inlines.?.append(allocator, '\n');
+                    break :open_blk;
+                }
                 try child.inlines.?.append(allocator, '\n');
                 for (line) |c| {
                     try child.inlines.?.append(allocator, c);
@@ -128,6 +133,26 @@ fn parseBlock(
                         line;
                 try parseBlock(allocator, inner_line, child);
             },
+            .list => {
+                const marker_index: u2 = if (child.list_type == .unordered) 2 else 3;
+                const is_ordered = (child.list_type == .ordered and line.len > 2 and std.mem.eql(u8, line[0..3], "1. "));
+                const is_unordered = (child.list_type == .unordered and line.len > 1 and line[0] == '*' and line[1] == ' ');
+
+                if (is_ordered or is_unordered) {
+                    try closeChildBlocks(allocator, child);
+                    var new_list_item = try ast.Block.init(allocator, .list_item);
+                    var para = try ast.Block.init(allocator, .paragraph);
+                    para.is_list_paragraph = true;
+                    for (line[marker_index..]) |c| {
+                        try para.inlines.?.append(allocator, c);
+                    }
+                    try new_list_item.content.?.append(allocator, para);
+                    try child.content.?.append(allocator, new_list_item);
+                } else {
+                    const open_list_item = &child.content.?.items[child.content.?.items.len - 1];
+                    try parseBlock(allocator, line[marker_index..], open_list_item);
+                }
+            },
         }
         return;
     };
@@ -163,6 +188,29 @@ fn parseBlock(
         const inner_line = if (line.len == 1) line[1..] else line[2..];
         try parseBlock(allocator, inner_line, &block_quote);
         try content.append(allocator, block_quote);
+    } else if (line.len > 1 and line[0] == '*' and line[1] == ' ') { // unordered list
+        var list = try ast.Block.init(allocator, .list);
+        var list_item = try ast.Block.init(allocator, .list_item);
+        var para = try ast.Block.init(allocator, .paragraph);
+        para.is_list_paragraph = true;
+        for (line[2..]) |c| {
+            try para.inlines.?.append(allocator, c);
+        }
+        try list_item.content.?.append(allocator, para);
+        try list.content.?.append(allocator, list_item);
+        try content.append(allocator, list);
+    } else if (line.len > 2 and std.mem.eql(u8, line[0..3], "1. ")) { // ordered list
+        var list = try ast.Block.init(allocator, .list);
+        list.list_type = .ordered;
+        var list_item = try ast.Block.init(allocator, .list_item);
+        var para = try ast.Block.init(allocator, .paragraph);
+        para.is_list_paragraph = true;
+        for (line[3..]) |c| {
+            try para.inlines.?.append(allocator, c);
+        }
+        try list_item.content.?.append(allocator, para);
+        try list.content.?.append(allocator, list_item);
+        try content.append(allocator, list);
     } else if (line.len > 1 and line[0] == '<' and std.ascii.isAlphabetic(line[1])) { // HTML block
         var html_block = try ast.Block.init(allocator, .html_block);
         for (line) |c| {
@@ -172,6 +220,9 @@ fn parseBlock(
         try content.append(allocator, html_block);
     } else { // paragraph
         var para = try ast.Block.init(allocator, .paragraph);
+        if (block.tag == .list_item) {
+            para.is_list_paragraph = true;
+        }
         for (line) |c| {
             try para.inlines.?.append(allocator, c);
         }

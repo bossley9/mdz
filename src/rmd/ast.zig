@@ -10,8 +10,15 @@ pub const BlockTag = enum {
     html_block,
     // container blocks
     block_quote,
+    list,
+    list_item,
     // inlines
     text,
+};
+
+pub const ListType = enum(u1) {
+    unordered,
+    ordered,
 };
 
 pub const Block = struct {
@@ -19,6 +26,8 @@ pub const Block = struct {
     open: bool,
     level: u3, // heading
     lang: [20:0]u8, // code block
+    is_list_paragraph: bool, // list_item paragraph
+    list_type: ListType,
     inlines: ?std.ArrayList(u8),
     content: ?std.ArrayList(Block),
 
@@ -45,6 +54,8 @@ pub const Block = struct {
             .open = true,
             .level = 0,
             .lang = .{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+            .is_list_paragraph = false,
+            .list_type = ListType.unordered,
             // only for storing temporary inlines
             // except in the case of literals
             .inlines = if (has_inlines)

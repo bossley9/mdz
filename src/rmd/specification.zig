@@ -1076,6 +1076,121 @@ test "5.1.16" {
 }
 // ```
 
+// ### 5.2. Lists
+
+// A <dfn>list</dfn> is a collection of related elements called <dfn>list items</dfn>. Lists begin with a single list item and end when a blank line is reached. Depending on the type of list, a different starting marker may be used:
+
+// * An unordered list item begins with `* `.
+// * An ordered list item begins with `1. `.
+
+// Unlike other container blocks, the direct contents of list block items are not wrapped in `<p>` tags.
+
+// ```zig
+test "5.2.1" {
+    const input =
+        \\* Milk
+        \\* Eggs
+        \\* Yogurt
+    ;
+    const output =
+        \\<ul>
+        \\<li>Milk</li>
+        \\<li>Eggs</li>
+        \\<li>Yogurt</li>
+        \\</ul>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
+// For ordered lists, all indices begin with `1.`. These will be auto-incremented.
+
+// ```zig
+test "5.2.2" {
+    const input =
+        \\1. Wake up
+        \\1. Go to work
+        \\1. Come home
+        \\1. Sleep
+    ;
+    const output =
+        \\<ol>
+        \\<li>Wake up</li>
+        \\<li>Go to work</li>
+        \\<li>Come home</li>
+        \\<li>Sleep</li>
+        \\</ol>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
+// However, lazy continuation still applies. Lazily continued lines must be indented up to the same level as the starting marker. For unordered lists, this means two spaces. For ordered lists, this means three spaces.
+
+// ```zig
+test "5.2.3" {
+    const input =
+        \\* Chocolate
+        \\  Milk
+        \\* Eggs
+    ;
+    const output =
+        \\<ul>
+        \\<li>Chocolate
+        \\Milk</li>
+        \\<li>Eggs</li>
+        \\</ul>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
+// Other blocks can be started without a new line.
+
+// ```zig
+test "5.2.5" {
+    const input =
+        \\* foo
+        \\  ```
+        \\  code too
+        \\  ```
+        \\  and continuation
+        \\* bar
+    ;
+    const output =
+        \\<ul>
+        \\<li>foo
+        \\<pre><code>code too
+        \\</code></pre>
+        \\and continuation</li>
+        \\<li>bar</li>
+        \\</ul>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
+// ```zig
+test "5.2.6" {
+    const input =
+        \\* foo
+        \\  > quote
+        \\* bar
+    ;
+    const output =
+        \\<ul>
+        \\<li>foo
+        \\<blockquote>
+        \\<p>quote</p>
+        \\</blockquote>
+        \\</li>
+        \\<li>bar</li>
+        \\</ul>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
 // ## 6. Inlines
 
 // Inlines are parsed left to right as they appear.

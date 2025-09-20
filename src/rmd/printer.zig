@@ -11,11 +11,15 @@ pub fn printDocument(block: *ast.Block, w: *Writer) Writer.Error!void {
             }
         },
         .paragraph => {
-            try w.print("<p>", .{});
+            if (!block.is_list_paragraph) {
+                try w.print("<p>", .{});
+            }
             for (block.content.?.items) |*child| {
                 try printDocument(child, w);
             }
-            try w.print("</p>\n", .{});
+            if (!block.is_list_paragraph) {
+                try w.print("</p>\n", .{});
+            }
         },
         .thematic_break => try w.print("<hr />\n", .{}),
         .heading => {
@@ -46,6 +50,28 @@ pub fn printDocument(block: *ast.Block, w: *Writer) Writer.Error!void {
                 try printDocument(child, w);
             }
             try w.print("</blockquote>\n", .{});
+        },
+        .list => {
+            if (block.list_type == .unordered) {
+                try w.print("<ul>\n", .{});
+            } else {
+                try w.print("<ol>\n", .{});
+            }
+            for (block.content.?.items) |*child| {
+                try printDocument(child, w);
+            }
+            if (block.list_type == .unordered) {
+                try w.print("</ul>\n", .{});
+            } else {
+                try w.print("</ol>\n", .{});
+            }
+        },
+        .list_item => {
+            try w.print("<li>", .{});
+            for (block.content.?.items) |*child| {
+                try printDocument(child, w);
+            }
+            try w.print("</li>\n", .{});
         },
         .html_block, .text => {
             // Valgrind panics when printing char arrays
