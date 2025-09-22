@@ -444,15 +444,16 @@ test "4.4.4" {
 
 // Contents are parsed as inlines.
 
-// TODO inlines
 // ```zig
-// test "4.4.5" {
-//     const input =
-//         \\# foo *bar* \*baz\*
-//     ,
-//         \\<h1>foo <em>bar</em> *baz*</h1>
-//     ;try th.expectParseRMD(input, output);
-// }
+test "4.4.5" {
+    const input =
+        \\# foo *bar* \*baz\*
+    ;
+    const output =
+        \\<h1>foo <em>bar</em> *baz*</h1>
+    ;
+    try th.expectParseRMD(input, output);
+}
 // ```
 
 // Indentation is not allowed.
@@ -1246,6 +1247,86 @@ test "6.2.1" {
     ;
     const output =
         \\<p>Writing <abbr>HTML</abbr> (Hyper Text Markup Language) is a breeze!</p>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
+// ### 6.3. Strong and Emphasis
+
+// In RMD, an asterisk character (`*`) in text inlines is candidate to become `<strong>` or `<em>`. The plain text must be wrapped with an opening and closing asterisk character for the text to become emphasized. To make the text strong, the plain text must be wrapped in two opening and closing asterisks.
+
+// ```zig
+test "6.3.1" {
+    const input =
+        \\Hello, *world*! **strong here**
+    ;
+    const output =
+        \\<p>Hello, <em>world</em>! <strong>strong here</strong></p>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
+// ```zig
+test "6.3.2" {
+    const input =
+        \\*foo* *bar*
+    ;
+    const output =
+        \\<p><em>foo</em> <em>bar</em></p>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
+// ```zig
+test "6.3.3" {
+    const input =
+        \\*hello\* world*
+    ;
+    const output =
+        \\<p><em>hello* world</em></p>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
+// ```zig
+test "6.3.4" {
+    const input =
+        \\foo*bar*
+    ;
+    const output =
+        \\<p>foo<em>bar</em></p>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
+// If an unmatched delimiter is found, it will be printed as plain text. However, this is discouraged because it introduces ambiguity. It is recommended to escape any asterisk characters that are meant to be rendered as plain text.
+
+// ```zig
+test "6.3.5" {
+    const input =
+        \\foo*bar
+    ;
+    const output =
+        \\<p>foo*bar</p>
+    ;
+    try th.expectParseRMD(input, output);
+}
+// ```
+
+// Nesting inlines is possible.
+
+// ```zig
+test "6.3.6" {
+    const input =
+        \\*foo **bar** baz*
+    ;
+    const output =
+        \\<p><em>foo <strong>bar</strong> baz</em></p>
     ;
     try th.expectParseRMD(input, output);
 }

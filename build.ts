@@ -25,9 +25,7 @@ const generatedDoc = doc
   .split("\n")
   .map((line) => {
     if (
-      line.includes("th.expectParseRMD(") ||
-      line.includes("const th = @import") ||
-      line.startsWith("// TODO")
+      line.includes("th.expectParseRMD(") || line.includes("const th = @import")
     ) {
       return null;
     } else if (line.startsWith("//")) {

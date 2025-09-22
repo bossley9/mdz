@@ -14,6 +14,9 @@ fn parseInlines(
 ) ParserError!void {
     const str = block.inlines.?.items;
 
+    var em_index: ?usize = null;
+    var str_index: ?usize = null;
+
     var i: usize = 0;
     while (i < str.len) : (i += 1) {
         // always guarantee available child
@@ -34,7 +37,30 @@ fn parseInlines(
                 }
             }
         } else { // plain text
-            try last_child.inlines.?.append(allocator, str[i]);
+            switch (str[i]) {
+                '*' => {
+                    if (i + 1 < str.len and str[i + 1] == '*') {
+                        if (str_index) |index| {
+                            try last_child.inlines.?.replaceRange(allocator, index, 2, "<strong>");
+                            str_index = null;
+                            try last_child.inlines.?.appendSlice(allocator, "</strong>");
+                        } else {
+                            str_index = last_child.inlines.?.items.len;
+                            try last_child.inlines.?.append(allocator, str[i]);
+                            try last_child.inlines.?.append(allocator, str[i + 1]);
+                        }
+                        i += 1;
+                    } else if (em_index) |index| {
+                        try last_child.inlines.?.replaceRange(allocator, index, 1, "<em>");
+                        em_index = null;
+                        try last_child.inlines.?.appendSlice(allocator, "</em>");
+                    } else {
+                        em_index = last_child.inlines.?.items.len;
+                        try last_child.inlines.?.append(allocator, str[i]);
+                    }
+                },
+                else => try last_child.inlines.?.append(allocator, str[i]),
+            }
         }
     }
     block.inlines.?.clearAndFree(allocator);
