@@ -3,6 +3,7 @@ const mod = @import("./root.zig");
 comptime {
     // include unreferenced tests
     _ = @import("./rmd/specification.zig");
+    _ = @import("./mdz/specification.zig");
 }
 
 pub fn main() !void {

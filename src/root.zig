@@ -2,6 +2,7 @@ const std = @import("std");
 const ast = @import("./rmd/ast.zig");
 const parser = @import("./rmd/parser.zig");
 const printer = @import("./rmd/printer.zig");
+const mdz = @import("./mdz/parser.zig");
 
 const Allocator = std.mem.Allocator;
 const Reader = std.io.Reader;
@@ -35,6 +36,15 @@ pub fn parseRMD(r: *Reader, w: *Writer) ParseRMDError!usize {
     if (w.end > 0) {
         w.undo(1); // remove final newline from printed output
     }
+    try w.flush();
+    return w.end;
+}
+
+/// Given an MDZ input reader and an output writer, parse and write the
+/// corresponding HTML string to the writer, then return the number of
+/// bytes written.
+pub fn parseMDZ(r: *Reader, w: *Writer) mdz.ProcessDocumentError!usize {
+    try mdz.processDocument(r, w);
     try w.flush();
     return w.end;
 }
