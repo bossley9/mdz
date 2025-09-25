@@ -3,7 +3,7 @@ const mod = @import("../root.zig");
 
 pub fn expectParseMDZ(input: []const u8, comptime expected: []const u8) !void {
     var reader = std.io.Reader.fixed(input);
-    var expected_buf: [expected.len * 2]u8 = undefined;
+    var expected_buf: [expected.len * 4]u8 = undefined;
     var writer = std.io.Writer.fixed(&expected_buf);
 
     const len = try mod.parseMDZ(&reader, &writer);

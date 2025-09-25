@@ -1,10 +1,5 @@
 const std = @import("std");
 const mod = @import("./root.zig");
-comptime {
-    // include unreferenced tests
-    _ = @import("./rmd/specification.zig");
-    _ = @import("./mdz/specification.zig");
-}
 
 pub fn main() !void {
     var args = try std.process.argsWithAllocator(std.heap.page_allocator);
@@ -25,6 +20,10 @@ pub fn main() !void {
     _ = try mod.parseRMD(&file_reader.interface, &stdout_writer.interface);
 }
 
+comptime {
+    _ = @import("./rmd/specification.zig");
+    _ = @import("./mdz/specification.zig");
+}
 test {
     std.testing.refAllDecls(@This());
 }

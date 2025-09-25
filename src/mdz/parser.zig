@@ -35,9 +35,11 @@ fn printEscapedChar(c: u8, w: *Writer) Writer.Error!void {
     }
 }
 
-fn closeBlocks(w: *Writer, stack: *ast.BlockStack) Writer.Error!void {
-    while (ast.stackPop(stack)) |val| switch (val) {
-        .nil => unreachable,
+fn closeBlocks(w: *Writer, state: *ast.BlockState, depth: usize) Writer.Error!void {
+    while (state.len > depth) : ({
+        state.items[state.len - 1] = null;
+        state.len -= 1;
+    }) switch (state.items[state.len - 1].?) {
         .block_quote => {
             try w.print("</blockquote>\n", .{});
         },
@@ -49,58 +51,88 @@ fn closeBlocks(w: *Writer, stack: *ast.BlockStack) Writer.Error!void {
 
 const ProcessLineError = Writer.Error || ast.StackError;
 
-fn processLine(line: []u8, w: *Writer, stack: *ast.BlockStack) ProcessLineError!void {
+fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting_depth: usize) ProcessLineError!void {
+    var depth = starting_depth;
+    var line = starting_line;
+
+    //
+    // validate existing blocks
+    //
+
+    while (depth < state.len) : (depth += 1) {
+        const block = state.items[depth].?;
+        switch (block) {
+            .block_quote => {
+                if (line.len > 1 and std.mem.eql(u8, line[0..2], "> ")) {
+                    line = line[2..];
+                } else {
+                    try closeBlocks(w, state, depth);
+                    break;
+                }
+            },
+            .paragraph => {
+                break; // paragraphs cannot contain child blocks
+            },
+        }
+    }
+
     if (line.len == 0) {
-        try closeBlocks(w, stack);
+        try closeBlocks(w, state, depth);
         return;
     }
 
-    var inner_line = line;
+    //
+    // create new blocks
+    //
 
     if (line.len > 1 and std.mem.eql(u8, line[0..2], "> ")) { // block quote
-        try ast.stackPush(stack, .block_quote);
+        try state.push(.block_quote);
         try w.print("<blockquote>\n", .{});
-        inner_line = line[2..];
+        return processLine(line[2..], w, state, depth + 1);
+    } else { // paragraph
+        if (state.len == 0 or state.items[state.len - 1] != .paragraph) {
+            try state.push(.paragraph);
+            try w.print("<p>", .{});
+        } else { // lazy continuation
+            try w.print("\n", .{});
+        }
     }
 
-    if (stack.len == 0 or stack.items[stack.len - 1] != .paragraph) { // paragraph
-        try ast.stackPush(stack, .paragraph);
-        try w.print("<p>", .{});
-    }
+    //
+    // process leaf blocks
+    //
 
     var i: usize = 0;
-    while (i < inner_line.len) : (i += 1) {
-        switch (inner_line[i]) {
+    while (i < line.len) : (i += 1) {
+        switch (line[i]) {
             '\\' => {
                 i += 1;
-                if (i < inner_line.len) {
+                if (i < line.len) {
                     @branchHint(.likely);
-                    try printEscapedChar(inner_line[i], w);
+                    try printEscapedChar(line[i], w);
                 }
             },
-            else => try w.print("{c}", .{inner_line[i]}),
+            else => try w.print("{c}", .{line[i]}),
         }
     }
 }
 
 pub const ProcessDocumentError = error{ ReadFailed, StreamTooLong, WriteFailed } || ast.StackError;
 
-/// Read an MDZ document from a input reader and incrementally write
+/// Read an MDZ document from an input reader and incrementally write
 /// the output to writer.
 pub fn processDocument(r: *Reader, w: *Writer) ProcessDocumentError!void {
-    var stack = ast.BlockStack{
-        .items = undefined,
-        .len = 0,
-    };
-    @memset(&stack.items, ast.Block.nil);
+    var state = ast.BlockState.init();
 
     while (takeNewlineExclusive(r)) |line| {
-        try processLine(line, w, &stack);
+        try processLine(line, w, &state, 0);
     } else |e| switch (e) {
         Reader.DelimiterError.EndOfStream => {}, // end of input
         Reader.DelimiterError.ReadFailed,
         Reader.DelimiterError.StreamTooLong,
         => |err| return err,
     }
-    try closeBlocks(w, &stack); // close remaining blocks
+    try closeBlocks(w, &state, 0); // close remaining blocks
+
+    if (w.end > 0) w.undo(1); // omit final newline
 }

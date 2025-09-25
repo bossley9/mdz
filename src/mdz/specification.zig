@@ -183,11 +183,11 @@ test "2.3.5" {
 
 // 1. <dfn>Line blocks</dfn>, which dictate how a line (or group of lines) is rendered,
 // 1. <dfn>Leaf blocks</dfn>, which are constrained within a particular block, and
-// 1. <dfn>plain text</dfn>.
+// 1. <dfn>Inline content</dfn>.
 
 // Blocks may contain other child blocks, but a leaf block cannot contain a line block. All line blocks must be separated by a blank line.
 
-// Blocks may only be nested up to 16 levels deep. This keeps documents readable and implementations simple.
+// Blocks may only be nested up to 12 levels deep. This keeps documents readable and implementations simple.
 
 // ## 4. Line Blocks
 
@@ -203,6 +203,270 @@ test "4.1.1" {
     const output =
         \\<blockquote>
         \\<p>hello</p>
+        \\</blockquote>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// TODO implement headings
+// ```zig
+// test "4.1.2" {
+//     const input =
+//         \\> # Foo
+//         \\> bar
+//         \\> baz
+//     ;
+//     const output =
+//         \\<blockquote>
+//         \\<h1>Foo</h1>
+//         \\<p>bar
+//         \\baz</p>
+//         \\</blockquote>
+//     ;
+//     try th.expectParseMDZ(input, output);
+// }
+// ```
+
+// Similar to paragraphs, block quotes can lazily continue.
+
+// TODO implement headings
+// ```zig
+// test "4.1.3" {
+//     const input =
+//         \\> # Foo
+//         \\>
+//         \\> bar
+//         \\baz
+//     ;
+//     const output =
+//         \\<blockquote>
+//         \\<h1>Foo</h1>
+//         \\<p>bar
+//         \\baz</p>
+//         \\</blockquote>
+//     ;
+//     try th.expectParseMDZ(input, output);
+// }
+// ```
+
+// ```zig
+test "4.1.4" {
+    const input =
+        \\> bar
+        \\> baz
+        \\> foo
+    ;
+    const output =
+        \\<blockquote>
+        \\<p>bar
+        \\baz
+        \\foo</p>
+        \\</blockquote>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "4.1.5" {
+    const input =
+        \\> foo
+        \\> ---
+    ;
+    const output =
+        \\<blockquote>
+        \\<p>foo
+        \\---</p>
+        \\</blockquote>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// TODO implement code blocks
+// ```zig
+// test "4.1.6" {
+//     const input =
+//         \\> ```
+//         \\foo
+//         \\```
+//     ;
+//     const output =
+//         \\<blockquote>
+//         \\<pre><code>foo
+//         \\</code></pre>
+//         \\</blockquote>
+//     ;
+//     try th.expectParseMDZ(input, output);
+// }
+// ```
+
+// A block quote can be empty.
+
+// ```zig
+test "4.1.7" {
+    const input =
+        \\> 
+    ;
+    const output =
+        \\<blockquote>
+        \\</blockquote>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "4.1.8" {
+    const input =
+        \\> 
+        \\>  
+        \\> 
+    ;
+    const output =
+        \\<blockquote>
+        \\<p> </p>
+        \\</blockquote>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "4.1.9" {
+    const input =
+        \\> 
+        \\> foo
+        \\> 
+    ;
+    const output =
+        \\<blockquote>
+        \\<p>foo</p>
+        \\</blockquote>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// A blank line must separate block quotes.
+
+// ```zig
+test "4.1.10" {
+    const input =
+        \\> foo
+        \\
+        \\> bar
+    ;
+    const output =
+        \\<blockquote>
+        \\<p>foo</p>
+        \\</blockquote>
+        \\<blockquote>
+        \\<p>bar</p>
+        \\</blockquote>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// When we put these block quotes together, we get a single block quote.
+
+// ```zig
+test "4.1.11" {
+    const input =
+        \\> foo
+        \\> bar
+    ;
+    const output =
+        \\<blockquote>
+        \\<p>foo
+        \\bar</p>
+        \\</blockquote>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// To get a block quote with two paragraphs:
+
+// ```zig
+test "4.1.12" {
+    const input =
+        \\> foo
+        \\> 
+        \\> bar
+    ;
+    const output =
+        \\<blockquote>
+        \\<p>foo</p>
+        \\<p>bar</p>
+        \\</blockquote>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "4.1.13" {
+    const input =
+        \\> bar
+        \\
+        \\baz
+    ;
+    const output =
+        \\<blockquote>
+        \\<p>bar</p>
+        \\</blockquote>
+        \\<p>baz</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Block quotes can be nested within each other.
+
+// ```zig
+test "4.1.14" {
+    const input =
+        \\> > > foo
+        \\
+        \\bar
+    ;
+    const output =
+        \\<blockquote>
+        \\<blockquote>
+        \\<blockquote>
+        \\<p>foo</p>
+        \\</blockquote>
+        \\</blockquote>
+        \\</blockquote>
+        \\<p>bar</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "4.1.15" {
+    const input =
+        \\> > > foo
+        \\> 
+        \\> bar
+        \\> 
+        \\> > baz
+    ;
+    const output =
+        \\<blockquote>
+        \\<blockquote>
+        \\<blockquote>
+        \\<p>foo</p>
+        \\</blockquote>
+        \\</blockquote>
+        \\<p>bar</p>
+        \\<blockquote>
+        \\<p>baz</p>
+        \\</blockquote>
         \\</blockquote>
     ;
     try th.expectParseMDZ(input, output);

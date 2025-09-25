@@ -1,46 +1,37 @@
 const std = @import("std");
 
-pub const Block = enum(u2) {
-    nil = 0,
+pub const Block = enum(u1) {
     // line blocks
     block_quote,
     paragraph,
 };
 
-const max_stack_len = 16;
-
-pub const BlockStack = struct {
-    items: [max_stack_len]Block,
-    len: usize,
-};
+const max_stack_len = 12;
 
 pub const StackError = error{BlockStackOverflow};
 
-/// Push the provided block to the stack. The block cannot be nil and
-/// the stack must have space.
-pub fn stackPush(stack: *BlockStack, block: Block) StackError!void {
-    std.debug.assert(block != .nil);
+pub const BlockState = struct {
+    items: [max_stack_len]?Block,
+    len: usize,
 
-    if (stack.len == max_stack_len) {
-        @branchHint(.cold);
-        return StackError.BlockStackOverflow;
+    pub fn init() BlockState {
+        var state = BlockState{
+            .items = undefined,
+            .len = 0,
+        };
+        @memset(&state.items, null);
+        return state;
     }
 
-    stack.items[stack.len] = block;
-    stack.len += 1;
-}
+    /// Push the provided block to the stack. The stack must have
+    /// available capacity.
+    pub fn push(self: *BlockState, block: Block) StackError!void {
+        if (self.len == max_stack_len) {
+            @branchHint(.cold);
+            return StackError.BlockStackOverflow;
+        }
 
-/// Pop the last block from the stack. The stack must have at least
-/// one item.
-pub fn stackPop(stack: *BlockStack) ?Block {
-    if (stack.len == 0) {
-        return null;
+        self.items[self.len] = block;
+        self.len += 1;
     }
-
-    const value = stack.items[stack.len - 1];
-
-    stack.items[stack.len - 1] = .nil;
-    stack.len -= 1;
-
-    return value;
-}
+};

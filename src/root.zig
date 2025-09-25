@@ -45,10 +45,6 @@ pub fn parseRMD(r: *Reader, w: *Writer) ParseRMDError!usize {
 /// bytes written.
 pub fn parseMDZ(r: *Reader, w: *Writer) mdz.ProcessDocumentError!usize {
     try mdz.processDocument(r, w);
-
-    if (w.end > 0) {
-        w.undo(1); // remove final newline
-    }
     try w.flush();
     return w.end;
 }
