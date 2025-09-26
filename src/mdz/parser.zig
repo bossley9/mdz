@@ -40,12 +40,11 @@ fn closeBlocks(w: *Writer, state: *ast.BlockState, depth: usize) Writer.Error!vo
         state.items[state.len - 1] = null;
         state.len -= 1;
     }) switch (state.items[state.len - 1].?) {
-        .block_quote => {
-            try w.print("</blockquote>\n", .{});
-        },
-        .paragraph => {
-            try w.print("</p>\n", .{});
-        },
+        .block_quote => try w.print("</blockquote>\n", .{}),
+        .unordered_list => try w.print("</li>\n</ul>\n", .{}),
+        .ordered_list => try w.print("</li>\n</ol>\n", .{}),
+        .paragraph => try w.print("</p>\n", .{}),
+        .paragraph_hidden => {},
     };
 }
 
@@ -70,15 +69,44 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                     break;
                 }
             },
-            .paragraph => {
-                break; // paragraphs cannot contain child blocks
+            .unordered_list => {
+                if (line.len > 1 and std.mem.eql(u8, line[0..2], "  ")) {
+                    line = line[2..];
+                } else if (line.len > 1 and std.mem.eql(u8, line[0..2], "* ")) {
+                    try closeBlocks(w, state, depth + 1);
+                    try w.print("</li>\n<li>", .{});
+                    line = line[2..];
+                } else {
+                    try closeBlocks(w, state, depth);
+                    break;
+                }
+            },
+            .ordered_list => {
+                if (line.len > 2 and std.mem.eql(u8, line[0..3], "   ")) {
+                    line = line[3..];
+                } else if (line.len > 2 and std.mem.eql(u8, line[0..3], "1. ")) {
+                    try closeBlocks(w, state, depth + 1);
+                    try w.print("</li>\n<li>", .{});
+                    line = line[3..];
+                } else {
+                    try closeBlocks(w, state, depth);
+                    break;
+                }
+            },
+            .paragraph => break, // paragraphs cannot contain child blocks
+            .paragraph_hidden => {
+                try w.print("\n", .{}); // lazy continuation
+                break;
             },
         }
     }
 
+    //
+    // close blocks for blank lines
+    //
+
     if (line.len == 0) {
-        try closeBlocks(w, state, depth);
-        return;
+        return closeBlocks(w, state, depth);
     }
 
     //
@@ -89,12 +117,30 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
         try state.push(.block_quote);
         try w.print("<blockquote>\n", .{});
         return processLine(line[2..], w, state, depth + 1);
+    } else if (line.len > 1 and std.mem.eql(u8, line[0..2], "* ")) { // unordered list
+        try state.push(.unordered_list);
+        try w.print("<ul>\n<li>", .{});
+        return processLine(line[2..], w, state, depth + 1);
+    } else if (line.len > 2 and std.mem.eql(u8, line[0..3], "1. ")) { // ordered list
+        try state.push(.ordered_list);
+        try w.print("<ol>\n<li>", .{});
+        return processLine(line[3..], w, state, depth + 1);
     } else { // paragraph
-        if (state.len == 0 or state.items[state.len - 1] != .paragraph) {
+        if (state.len == 0) {
             try state.push(.paragraph);
             try w.print("<p>", .{});
-        } else { // lazy continuation
-            try w.print("\n", .{});
+        } else {
+            switch (state.items[state.len - 1].?) {
+                .unordered_list,
+                .ordered_list,
+                => try state.push(.paragraph_hidden),
+                .paragraph => try w.print("\n", .{}), // lazy continuation
+                .paragraph_hidden => {}, // lazy continuation
+                else => {
+                    try state.push(.paragraph);
+                    try w.print("<p>", .{});
+                },
+            }
         }
     }
 

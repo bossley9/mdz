@@ -1,9 +1,13 @@
 const std = @import("std");
 
-pub const Block = enum(u1) {
+pub const Block = enum(u3) {
     // line blocks
     block_quote,
+    unordered_list,
+    ordered_list,
+    // leaf blocks
     paragraph,
+    paragraph_hidden,
 };
 
 const max_stack_len = 12;

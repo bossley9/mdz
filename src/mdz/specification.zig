@@ -472,3 +472,122 @@ test "4.1.15" {
     try th.expectParseMDZ(input, output);
 }
 // ```
+
+// ### 4.2. Lists
+
+// A <dfn>list</dfn> is a collection of related elements called <dfn>list items</dfn>. Lists begin with a single list item and end when a blank line is reached. Depending on the type of list, a different starting marker may be used:
+
+// * An unordered list item begins with `* `.
+// * An ordered list item begins with `1. `.
+
+// Unlike other container blocks, the direct contents of list block items are not wrapped in `<p>` tags.
+
+// ```zig
+test "4.2.1" {
+    const input =
+        \\* Milk
+        \\* Eggs
+        \\* Yogurt
+    ;
+    const output =
+        \\<ul>
+        \\<li>Milk</li>
+        \\<li>Eggs</li>
+        \\<li>Yogurt</li>
+        \\</ul>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// For ordered lists, all indices begin with `1.`. These are auto-incremented in the output.
+
+// ```zig
+test "4.2.2" {
+    const input =
+        \\1. Wake up
+        \\1. Go to work
+        \\1. Come home
+        \\1. Sleep
+    ;
+    const output =
+        \\<ol>
+        \\<li>Wake up</li>
+        \\<li>Go to work</li>
+        \\<li>Come home</li>
+        \\<li>Sleep</li>
+        \\</ol>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Lazy continuation still applies for list item contents because they act as paragraphs. Lazily continued lines must be indented up to the same level as the starting marker. For unordered lists, this means two spaces. For ordered lists, this means three spaces.
+
+// ```zig
+test "4.2.3" {
+    const input =
+        \\* Chocolate
+        \\  Milk
+        \\* Eggs
+    ;
+    const output =
+        \\<ul>
+        \\<li>Chocolate
+        \\Milk</li>
+        \\<li>Eggs</li>
+        \\</ul>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Other blocks can be started without a new line.
+
+// TODO implement code blocks
+// // ```zig
+// test "4.2.4" {
+//     const input =
+//         \\* foo
+//         \\  ```
+//         \\  code too
+//         \\  ```
+//         \\  and continuation
+//         \\* bar
+//     ;
+//     const output =
+//         \\<ul>
+//         \\<li>foo
+//         \\<pre><code>code too
+//         \\</code></pre>
+//         \\and continuation</li>
+//         \\<li>bar</li>
+//         \\</ul>
+//     ;
+//     try th.expectParseMDZ(input, output);
+// }
+// // ```
+
+// ```zig
+test "4.2.5" {
+    const input =
+        \\* foo
+        \\  
+        \\  > quote
+        \\  
+        \\  bar
+        \\* baz
+    ;
+    const output =
+        \\<ul>
+        \\<li>foo
+        \\<blockquote>
+        \\<p>quote</p>
+        \\</blockquote>
+        \\bar</li>
+        \\<li>baz</li>
+        \\</ul>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
