@@ -17,11 +17,10 @@ pub fn main() !void {
     var writer_buf: [std.wasm.page_size / 4]u8 = undefined;
     var stdout_writer = std.fs.File.stdout().writer(&writer_buf);
 
-    _ = try mod.parseRMD(&file_reader.interface, &stdout_writer.interface);
+    _ = try mod.parseMDZ(&file_reader.interface, &stdout_writer.interface);
 }
 
 comptime {
-    _ = @import("./rmd/specification.zig");
     _ = @import("./mdz/specification.zig");
 }
 test {

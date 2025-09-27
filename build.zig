@@ -12,7 +12,7 @@ pub fn build(b: *std.Build) !void {
         .optimize = .ReleaseFast,
     });
     const exe = b.addExecutable(.{
-        .name = "rmd",
+        .name = "mdz",
         .root_module = exe_mod,
     });
     b.installArtifact(exe);
@@ -27,7 +27,7 @@ pub fn build(b: *std.Build) !void {
         .optimize = .ReleaseFast,
     });
     const wasm = b.addExecutable(.{
-        .name = "rmd",
+        .name = "mdz",
         .root_module = wasm_mod,
     });
     wasm.rdynamic = true;
@@ -44,7 +44,7 @@ pub fn build(b: *std.Build) !void {
         .valgrind = true,
     });
     const debug_exe = b.addExecutable(.{
-        .name = "rmd-debug",
+        .name = "mdz-debug",
         .root_module = debug_mod,
     });
     const debug_exe_art = b.addInstallArtifact(debug_exe, .{});

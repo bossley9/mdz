@@ -9,7 +9,7 @@ await Deno.copyFile("./src/lib.d.ts", "./dist/index.d.ts");
 const marker = "/*generated_code_flag_marker*/";
 
 const src = await Deno.readTextFile("./src/lib.js");
-const wasm = await Deno.readFile("./zig-out/bin/rmd.wasm");
+const wasm = await Deno.readFile("./zig-out/bin/mdz.wasm");
 
 const output = src.substring(0, src.indexOf(marker)) +
   wasm +
@@ -19,13 +19,13 @@ await Deno.writeTextFile("./dist/index.js", output);
 
 // documentation generation
 
-const doc = await Deno.readTextFile("./src/rmd/specification.zig");
+const doc = await Deno.readTextFile("./src/mdz/specification.zig");
 
 const generatedDoc = doc
   .split("\n")
   .map((line) => {
     if (
-      line.includes("th.expectParseRMD(") || line.includes("const th = @import")
+      line.includes("th.expectParseMDZ(") || line.includes("const th = @import")
     ) {
       return null;
     } else if (line.startsWith("//")) {
