@@ -167,6 +167,36 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
             try w.print("<pre><code>", .{});
         }
         return;
+    } else if (line.len > 6 and std.mem.eql(u8, line[0..7], "###### ")) { // heading 6
+        try w.print("<h6>", .{});
+        try processInlines(line[7..], w);
+        try w.print("</h6>\n", .{});
+        return;
+    } else if (line.len > 5 and std.mem.eql(u8, line[0..6], "##### ")) { // heading 5
+        try w.print("<h5>", .{});
+        try processInlines(line[6..], w);
+        try w.print("</h5>\n", .{});
+        return;
+    } else if (line.len > 4 and std.mem.eql(u8, line[0..5], "#### ")) { // heading 4
+        try w.print("<h4>", .{});
+        try processInlines(line[5..], w);
+        try w.print("</h4>\n", .{});
+        return;
+    } else if (line.len > 3 and std.mem.eql(u8, line[0..4], "### ")) { // heading 3
+        try w.print("<h3>", .{});
+        try processInlines(line[4..], w);
+        try w.print("</h3>\n", .{});
+        return;
+    } else if (line.len > 2 and std.mem.eql(u8, line[0..3], "## ")) { // heading 2
+        try w.print("<h2>", .{});
+        try processInlines(line[3..], w);
+        try w.print("</h2>\n", .{});
+        return;
+    } else if (line.len > 1 and std.mem.eql(u8, line[0..2], "# ")) { // heading 1
+        try w.print("<h1>", .{});
+        try processInlines(line[2..], w);
+        try w.print("</h1>\n", .{});
+        return;
     } else { // paragraph
         if (state.len == 0) {
             try state.push(.paragraph);

@@ -208,45 +208,43 @@ test "4.1.1" {
 }
 // ```
 
-// TODO implement headings
 // ```zig
-// test "4.1.2" {
-//     const input =
-//         \\> # Foo
-//         \\> bar
-//         \\> baz
-//     ;
-//     const output =
-//         \\<blockquote>
-//         \\<h1>Foo</h1>
-//         \\<p>bar
-//         \\baz</p>
-//         \\</blockquote>
-//     ;
-//     try th.expectParseMDZ(input, output);
-// }
+test "4.1.2" {
+    const input =
+        \\> # Foo
+        \\> bar
+        \\> baz
+    ;
+    const output =
+        \\<blockquote>
+        \\<h1>Foo</h1>
+        \\<p>bar
+        \\baz</p>
+        \\</blockquote>
+    ;
+    try th.expectParseMDZ(input, output);
+}
 // ```
 
 // Similar to paragraphs, block quotes can lazily continue.
 
-// TODO implement headings
 // ```zig
-// test "4.1.3" {
-//     const input =
-//         \\> # Foo
-//         \\>
-//         \\> bar
-//         \\baz
-//     ;
-//     const output =
-//         \\<blockquote>
-//         \\<h1>Foo</h1>
-//         \\<p>bar
-//         \\baz</p>
-//         \\</blockquote>
-//     ;
-//     try th.expectParseMDZ(input, output);
-// }
+test "4.1.3" {
+    const input =
+        \\> # Foo
+        \\> 
+        \\> bar
+        \\> baz
+    ;
+    const output =
+        \\<blockquote>
+        \\<h1>Foo</h1>
+        \\<p>bar
+        \\baz</p>
+        \\</blockquote>
+    ;
+    try th.expectParseMDZ(input, output);
+}
 // ```
 
 // ```zig
@@ -699,28 +697,27 @@ test "5.1.6" {
 }
 // ```
 
-// TODO implement headings
 // ```zig
-// test "5.1.7" {
-//     const input =
-//         \\
-//         \\
-//         \\aaa
-//         \\
-//         \\
-//         \\# aaa
-//         \\
-//         \\
-//     ;
-//     const output =
-//         \\<p>  </p>
-//         \\<p>aaa
-//         \\  </p>
-//         \\<h1>aaa</h1>
-//         \\<p>  </p>
-//     ;
-//     try th.expectParseMDZ(input, output);
-// }
+test "5.1.7" {
+    const input =
+        \\  
+        \\
+        \\aaa
+        \\  
+        \\
+        \\# aaa
+        \\
+        \\  
+    ;
+    const output =
+        \\<p>  </p>
+        \\<p>aaa
+        \\  </p>
+        \\<h1>aaa</h1>
+        \\<p>  </p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
 // ```
 
 // ## 5.2. Code Blocks
@@ -908,6 +905,178 @@ test "5.2.11" {
     ;
     const output =
         \\<pre><code class="language-javascript"></code></pre>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ### 5.3. Headings
+
+// Headings begin at the start of a block and consist of 1 to 6 `#` characters followed by exactly one space followed by inline content. The heading level is equal to the number of `#` characters. Headings only span a single line.
+
+// ```zig
+test "5.3.1" {
+    const input =
+        \\# foo
+        \\
+        \\## foo
+        \\
+        \\### foo
+        \\
+        \\#### foo
+        \\
+        \\##### foo
+        \\
+        \\###### foo
+    ;
+    const output =
+        \\<h1>foo</h1>
+        \\<h2>foo</h2>
+        \\<h3>foo</h3>
+        \\<h4>foo</h4>
+        \\<h5>foo</h5>
+        \\<h6>foo</h6>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// More than six # characters is not a heading:
+
+// ```zig
+test "5.3.2" {
+    const input =
+        \\####### foo
+    ;
+    const output =
+        \\<p>####### foo</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Exactly one space is required between the `#` characters and the heading's contents.
+
+// ```zig
+test "5.3.3" {
+    const input =
+        \\#5 bolt
+        \\
+        \\#hashtag
+    ;
+    const output =
+        \\<p>#5 bolt</p>
+        \\<p>#hashtag</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// This is not a heading because the first `#` is escaped:
+
+// ```zig
+test "5.3.4" {
+    const input =
+        \\\## foo
+    ;
+    const output =
+        \\<p>## foo</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Contents are parsed as inlines.
+
+// TODO implement inlines
+// // ```zig
+// test "5.3.5" {
+//     const input =
+//         \\# foo *bar* \*baz\*
+//     ;
+//     const output =
+//         \\<h1>foo <em>bar</em> *baz*</h1>
+//     ;
+//     try th.expectParseMDZ(input, output);
+// }
+// // ```
+
+// Indentation is not allowed.
+
+// ```zig
+test "5.3.6" {
+    const input =
+        \\ ### foo
+    ;
+    const output =
+        \\<p> ### foo</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "5.3.7" {
+    const input =
+        \\foo
+        \\    # bar
+    ;
+    const output =
+        \\<p>foo
+        \\    # bar</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Headings must be separated from surrounding content by blank lines.
+
+// TODO implement thematic breaks
+// // ```zig
+// test "5.3.8" {
+//     const input =
+//         \\---
+//         \\
+//         \\## foo
+//         \\
+//         \\---
+//     ;
+//     const output =
+//         \\<hr />
+//         \\<h2>foo</h2>
+//         \\<hr />
+//     ;
+//     try th.expectParseMDZ(input, output);
+// }
+// // ```
+
+// ```zig
+test "5.3.9" {
+    const input =
+        \\Foo bar
+        \\# baz
+        \\Bar foo
+    ;
+    const output =
+        \\<p>Foo bar
+        \\# baz
+        \\Bar foo</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Headings can only span one line. They do not lazily continue.
+
+// ```zig
+test "5.3.10" {
+    const input =
+        \\# Hello
+        \\world!
+    ;
+    const output =
+        \\<h1>Hello</h1>
+        \\<p>world!</p>
     ;
     try th.expectParseMDZ(input, output);
 }
