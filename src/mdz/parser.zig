@@ -62,6 +62,7 @@ fn closeBlocks(w: *Writer, state: *ast.BlockState, depth: usize) Writer.Error!vo
         .paragraph => try w.print("</p>\n", .{}),
         .paragraph_hidden => {},
         .code_block => try w.print("</code></pre>\n", .{}),
+        .html_block => {},
     };
 }
 
@@ -132,6 +133,14 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                 }
                 return;
             },
+            .html_block => {
+                if (line.len == 0) {
+                    try closeBlocks(w, state, depth);
+                } else {
+                    try w.print("{s}\n", .{line});
+                }
+                return;
+            },
         }
     }
 
@@ -196,6 +205,13 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
         try w.print("<h1>", .{});
         try processInlines(line[2..], w);
         try w.print("</h1>\n", .{});
+        return;
+    } else if (line.len == 3 and std.mem.eql(u8, line, "---")) { // thematic break
+        try w.print("<hr />\n", .{});
+        return;
+    } else if (line.len > 1 and line[0] == '<' and std.ascii.isAlphabetic(line[1])) { // HTML block
+        try state.push(.html_block);
+        try processLine(line, w, state, depth);
         return;
     } else { // paragraph
         if (state.len == 0) {

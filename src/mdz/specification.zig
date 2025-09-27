@@ -1031,23 +1031,22 @@ test "5.3.7" {
 
 // Headings must be separated from surrounding content by blank lines.
 
-// TODO implement thematic breaks
-// // ```zig
-// test "5.3.8" {
-//     const input =
-//         \\---
-//         \\
-//         \\## foo
-//         \\
-//         \\---
-//     ;
-//     const output =
-//         \\<hr />
-//         \\<h2>foo</h2>
-//         \\<hr />
-//     ;
-//     try th.expectParseMDZ(input, output);
-// }
+// ```zig
+test "5.3.8" {
+    const input =
+        \\---
+        \\
+        \\## foo
+        \\
+        \\---
+    ;
+    const output =
+        \\<hr />
+        \\<h2>foo</h2>
+        \\<hr />
+    ;
+    try th.expectParseMDZ(input, output);
+}
 // // ```
 
 // ```zig
@@ -1077,6 +1076,110 @@ test "5.3.10" {
     const output =
         \\<h1>Hello</h1>
         \\<p>world!</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ### 5.4. Thematic Breaks
+
+// A thematic break is a line consisting of exactly three `-` characters.
+
+// ```zig
+test "5.4.1" {
+    const input =
+        \\---
+    ;
+    const output =
+        \\<hr />
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "5.4.2" {
+    const input =
+        \\--
+    ;
+    const output =
+        \\<p>--</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Like other blocks, thematic breaks require blank lines as separation from other blocks.
+
+// ```zig
+test "5.4.3" {
+    const input =
+        \\foo
+        \\---
+        \\bar
+    ;
+    const output =
+        \\<p>foo
+        \\---
+        \\bar</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ### 5.5. HTML Blocks
+
+// Similar to a code block, an HTML block is a block that is treated as literal text. The key differences are that HTML markup markers (`<`, `>`, and `&`) are not escaped, and that an HTML block ends when a blank line is reached.
+
+// An HTML block begins with a `<` character immediately followed by any alphabetic character.
+
+// ```zig
+test "5.5.1" {
+    const input =
+        \\<div>foo</div>
+    ;
+    const output =
+        \\<div>foo</div>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "5.5.2" {
+    const input =
+        \\<p>custom</p>
+        \\<p>HTML elements</p>
+        \\<p>here</p>
+    ;
+    const output =
+        \\<p>custom</p>
+        \\<p>HTML elements</p>
+        \\<p>here</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "5.5.3" {
+    const input =
+        \\# foo
+        \\
+        \\<details>
+        \\<summary>open</summary>
+        \\secrets
+        \\</details>
+        \\
+        \\foo bar
+    ;
+    const output =
+        \\<h1>foo</h1>
+        \\<details>
+        \\<summary>open</summary>
+        \\secrets
+        \\</details>
+        \\<p>foo bar</p>
     ;
     try th.expectParseMDZ(input, output);
 }

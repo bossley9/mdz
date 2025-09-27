@@ -9,6 +9,7 @@ pub const Block = enum(u3) {
     paragraph,
     paragraph_hidden,
     code_block,
+    html_block,
 };
 
 const max_stack_len = 12;
