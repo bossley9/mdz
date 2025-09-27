@@ -155,26 +155,25 @@ test "2.3.5" {
 
 // However, backslash rules are ignored within code blocks.
 
-// TODO implement code blocks
 // ```zig
-// test "2.3.6" {
-//     const input =
-//         \\```zig
-//         \\const str =
-//         \\  \\hello,
-//         \\  \\world!
-//         \\;
-//         \\```
-//     ;
-//     const output =
-//         \\<pre><code class="language-zig">const str =
-//         \\  \\hello,
-//         \\  \\world!
-//         \\;
-//         \\</code></pre>
-//     ;
-//     try th.expectParseMDZ(input, output);
-// }
+test "2.3.6" {
+    const input =
+        \\```zig
+        \\const str =
+        \\  \\hello,
+        \\  \\world!
+        \\;
+        \\```
+    ;
+    const output =
+        \\<pre><code class="language-zig">const str =
+        \\  \\hello,
+        \\  \\world!
+        \\;
+        \\</code></pre>
+    ;
+    try th.expectParseMDZ(input, output);
+}
 // ```
 
 // ## 3. Blocks
@@ -284,22 +283,21 @@ test "4.1.5" {
 }
 // ```
 
-// TODO implement code blocks
 // ```zig
-// test "4.1.6" {
-//     const input =
-//         \\> ```
-//         \\foo
-//         \\```
-//     ;
-//     const output =
-//         \\<blockquote>
-//         \\<pre><code>foo
-//         \\</code></pre>
-//         \\</blockquote>
-//     ;
-//     try th.expectParseMDZ(input, output);
-// }
+test "4.1.6" {
+    const input =
+        \\> ```
+        \\> foo
+        \\> ```
+    ;
+    const output =
+        \\<blockquote>
+        \\<pre><code>foo
+        \\</code></pre>
+        \\</blockquote>
+    ;
+    try th.expectParseMDZ(input, output);
+}
 // ```
 
 // A block quote can be empty.
@@ -544,29 +542,30 @@ test "4.2.3" {
 
 // Other blocks can be started without a new line.
 
-// TODO implement code blocks
-// // ```zig
-// test "4.2.4" {
-//     const input =
-//         \\* foo
-//         \\  ```
-//         \\  code too
-//         \\  ```
-//         \\  and continuation
-//         \\* bar
-//     ;
-//     const output =
-//         \\<ul>
-//         \\<li>foo
-//         \\<pre><code>code too
-//         \\</code></pre>
-//         \\and continuation</li>
-//         \\<li>bar</li>
-//         \\</ul>
-//     ;
-//     try th.expectParseMDZ(input, output);
-// }
-// // ```
+// ```zig
+test "4.2.4" {
+    const input =
+        \\* foo
+        \\  
+        \\  ```
+        \\  code too
+        \\  ```
+        \\  
+        \\  and continuation
+        \\* bar
+    ;
+    const output =
+        \\<ul>
+        \\<li>foo
+        \\<pre><code>code too
+        \\</code></pre>
+        \\and continuation</li>
+        \\<li>bar</li>
+        \\</ul>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
 
 // ```zig
 test "4.2.5" {
@@ -587,6 +586,328 @@ test "4.2.5" {
         \\bar</li>
         \\<li>baz</li>
         \\</ul>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ## 5. Leaf Blocks
+
+// ## 5.1. Paragraphs
+
+// A paragraph is a block that cannot be interpreted as any other kind of block. A paragraph can contain inline content.
+
+// ```zig
+test "5.1.1" {
+    const input =
+        \\Hello, world!
+    ;
+    const output =
+        \\<p>Hello, world!</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "5.1.2" {
+    const input =
+        \\aaa
+        \\
+        \\bbb
+    ;
+    const output =
+        \\<p>aaa</p>
+        \\<p>bbb</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Paragraphs "lazily" continue to the next line when a blank line does not separate the lines.
+
+// ```zig
+test "5.1.3" {
+    const input =
+        \\aaa
+        \\bbb
+        \\
+        \\ccc
+        \\ddd
+    ;
+    const output =
+        \\<p>aaa
+        \\bbb</p>
+        \\<p>ccc
+        \\ddd</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "5.1.4" {
+    const input =
+        \\foo
+        \\\*bar
+        \\
+        \\baz
+        \\foo\*
+    ;
+    const output =
+        \\<p>foo
+        \\*bar</p>
+        \\<p>baz
+        \\foo*</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Multiple blank lines have no effect.
+
+// ```zig
+test "5.1.5" {
+    const input =
+        \\aaa
+        \\
+        \\
+        \\
+        \\bbb
+    ;
+    const output =
+        \\<p>aaa</p>
+        \\<p>bbb</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Whitespace and newlines are preserved in the final output.
+
+// ```zig
+test "5.1.6" {
+    const input =
+        \\  aaa
+        \\ bbb
+    ;
+    const output =
+        \\<p>  aaa
+        \\ bbb</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// TODO implement headings
+// ```zig
+// test "5.1.7" {
+//     const input =
+//         \\
+//         \\
+//         \\aaa
+//         \\
+//         \\
+//         \\# aaa
+//         \\
+//         \\
+//     ;
+//     const output =
+//         \\<p>  </p>
+//         \\<p>aaa
+//         \\  </p>
+//         \\<h1>aaa</h1>
+//         \\<p>  </p>
+//     ;
+//     try th.expectParseMDZ(input, output);
+// }
+// ```
+
+// ## 5.2. Code Blocks
+
+// A <dfn>code fence</dfn> is a sequence of three consecutive backtick characters. A code block begins with a code fence and ends with code fence. The opening code block line may optionally contain text immediately following the backtick characters. This text is called the <dfn>info string</dfn> and may not contain any non-alphabetic characters.
+
+// The content of a code block may span multiple lines until the ending code fence is reached. The contents of a code block are treated as literal text, not inline content. In implementation, `<`, `>`, and `&` must be converted to `&lt;`, `&gt;`, and `&amp;` respectively to avoid conflicts with generated HTML markup.
+
+// ```zig
+test "5.2.1" {
+    const input =
+        \\```
+        \\<
+        \\ >
+        \\```
+    ;
+    const output =
+        \\<pre><code>&lt;
+        \\ &gt;
+        \\</code></pre>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "5.2.2" {
+    const input =
+        \\```
+        \\aaa
+        \\---
+        \\```
+    ;
+    const output =
+        \\<pre><code>aaa
+        \\---
+        \\</code></pre>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Excluding the info string, the opening and closing code fences must be exactly 3 backticks long.
+
+// ```zig
+test "5.2.3" {
+    const input =
+        \\```
+        \\content
+        \\```
+    ;
+    const output =
+        \\<pre><code>content
+        \\</code></pre>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Unclosed code blocks are closed by the end of the document or parent block:
+
+// ```zig
+test "5.2.4" {
+    const input =
+        \\```
+    ;
+    const output =
+        \\<pre><code></code></pre>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "5.2.5" {
+    const input =
+        \\```
+        \\aaa
+    ;
+    const output =
+        \\<pre><code>aaa
+        \\</code></pre>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "5.2.6" {
+    const input =
+        \\> ```
+        \\> aaa
+        \\
+        \\bbb
+    ;
+    const output =
+        \\<blockquote>
+        \\<pre><code>aaa
+        \\</code></pre>
+        \\</blockquote>
+        \\<p>bbb</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// A code block can have blank lines or no content:
+
+// ```zig
+test "5.2.7" {
+    const input =
+        \\```
+        \\
+        \\
+        \\```
+    ;
+    const output =
+        \\<pre><code>
+        \\
+        \\</code></pre>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "5.2.8" {
+    const input =
+        \\```
+        \\```
+    ;
+    const output =
+        \\<pre><code></code></pre>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Fences cannot be indented:
+
+// ```zig
+test "5.2.9" {
+    const input =
+        \\ ```
+        \\ aaa
+        \\aaa
+        \\```
+    ;
+    const output =
+        \\<p> ```
+        \\ aaa
+        \\aaa
+        \\```</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// The info string is used to specify the programming language of the code block and is rendered in the `class` attribute of the code string with prefix `language-` in accordance with the [WhatWG recommendation](https://html.spec.whatwg.org/multipage/text-level-semantics.html#the-code-element).
+
+// ```zig
+test "5.2.10" {
+    const input =
+        \\```ruby
+        \\def foo(x)
+        \\  return 3
+        \\end
+        \\```
+    ;
+    const output =
+        \\<pre><code class="language-ruby">def foo(x)
+        \\  return 3
+        \\end
+        \\</code></pre>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "5.2.11" {
+    const input =
+        \\```javascript
+        \\```
+    ;
+    const output =
+        \\<pre><code class="language-javascript"></code></pre>
     ;
     try th.expectParseMDZ(input, output);
 }

@@ -8,6 +8,7 @@ pub const Block = enum(u3) {
     // leaf blocks
     paragraph,
     paragraph_hidden,
+    code_block,
 };
 
 const max_stack_len = 12;

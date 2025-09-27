@@ -26,12 +26,28 @@ fn takeNewlineExclusive(r: *Reader) Reader.DelimiterError![]u8 {
     return result[0 .. result.len - 1];
 }
 
-fn printEscapedChar(c: u8, w: *Writer) Writer.Error!void {
+fn printEscapedHtml(c: u8, w: *Writer) Writer.Error!void {
     switch (c) {
         '>' => try w.print("&gt;", .{}),
         '<' => try w.print("&lt;", .{}),
         '&' => try w.print("&amp;", .{}),
         else => try w.print("{c}", .{c}),
+    }
+}
+
+fn processInlines(inlines: []u8, w: *Writer) Writer.Error!void {
+    var i: usize = 0;
+    while (i < inlines.len) : (i += 1) {
+        switch (inlines[i]) {
+            '\\' => {
+                i += 1;
+                if (i < inlines.len) {
+                    @branchHint(.likely);
+                    try printEscapedHtml(inlines[i], w);
+                }
+            },
+            else => try w.print("{c}", .{inlines[i]}),
+        }
     }
 }
 
@@ -45,6 +61,7 @@ fn closeBlocks(w: *Writer, state: *ast.BlockState, depth: usize) Writer.Error!vo
         .ordered_list => try w.print("</li>\n</ol>\n", .{}),
         .paragraph => try w.print("</p>\n", .{}),
         .paragraph_hidden => {},
+        .code_block => try w.print("</code></pre>\n", .{}),
     };
 }
 
@@ -93,10 +110,27 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                     break;
                 }
             },
-            .paragraph => break, // paragraphs cannot contain child blocks
+            .paragraph => {
+                if (line.len == 0) {
+                    try closeBlocks(w, state, depth);
+                } else {
+                    try w.print("\n", .{}); // lazy continuation
+                    try processInlines(line, w);
+                }
+                return;
+            },
             .paragraph_hidden => {
                 try w.print("\n", .{}); // lazy continuation
                 break;
+            },
+            .code_block => {
+                if (line.len > 2 and std.mem.eql(u8, line[0..3], "```")) {
+                    try closeBlocks(w, state, depth);
+                } else {
+                    for (line) |c| try printEscapedHtml(c, w);
+                    try w.print("\n", .{});
+                }
+                return;
             },
         }
     }
@@ -125,6 +159,14 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
         try state.push(.ordered_list);
         try w.print("<ol>\n<li>", .{});
         return processLine(line[3..], w, state, depth + 1);
+    } else if (line.len > 2 and std.mem.eql(u8, line[0..3], "```")) { // code block
+        try state.push(.code_block);
+        if (line[3..].len > 0) {
+            try w.print("<pre><code class=\"language-{s}\">", .{line[3..]});
+        } else {
+            try w.print("<pre><code>", .{});
+        }
+        return;
     } else { // paragraph
         if (state.len == 0) {
             try state.push(.paragraph);
@@ -134,8 +176,8 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                 .unordered_list,
                 .ordered_list,
                 => try state.push(.paragraph_hidden),
-                .paragraph => try w.print("\n", .{}), // lazy continuation
-                .paragraph_hidden => {}, // lazy continuation
+                .paragraph => unreachable,
+                .paragraph_hidden => {},
                 else => {
                     try state.push(.paragraph);
                     try w.print("<p>", .{});
@@ -148,19 +190,7 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
     // process leaf blocks
     //
 
-    var i: usize = 0;
-    while (i < line.len) : (i += 1) {
-        switch (line[i]) {
-            '\\' => {
-                i += 1;
-                if (i < line.len) {
-                    @branchHint(.likely);
-                    try printEscapedChar(line[i], w);
-                }
-            },
-            else => try w.print("{c}", .{line[i]}),
-        }
-    }
+    try processInlines(line, w);
 }
 
 pub const ProcessDocumentError = error{ ReadFailed, StreamTooLong, WriteFailed } || ast.StackError;
