@@ -1073,7 +1073,7 @@ test "5.3.8" {
     ;
     try th.expectParseMDZ(input, output);
 }
-// // ```
+// ```
 
 // ```zig
 test "5.3.9" {
@@ -1206,6 +1206,76 @@ test "5.5.3" {
         \\secrets
         \\</details>
         \\<p>foo bar</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ## 6. Inlines
+
+// Inline content is parsed after block structure is determined. Inline content is parsed character by character - that is, inlines do not self-close unlike blocks. It is the responsibilty of the writer to ensure that every inline content marker is properly closed.
+
+// ### 6.1. Strong and Emphasis
+
+// An asterisk character (`*`) in inline content is candidate to become either `<strong>` or `<em>`. The plain text must be wrapped with a single opening and closing asterisk character for the text to become emphasized. To make the text strong, the plain text must be wrapped in two opening and closing asterisks.
+
+// ```zig
+test "6.1.1" {
+    const input =
+        \\Hello, *world*! **strong here**
+    ;
+    const output =
+        \\<p>Hello, <em>world</em>! <strong>strong here</strong></p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "6.1.2" {
+    const input =
+        \\*foo* *bar*
+    ;
+    const output =
+        \\<p><em>foo</em> <em>bar</em></p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "6.1.3" {
+    const input =
+        \\*hello\* world*
+    ;
+    const output =
+        \\<p><em>hello* world</em></p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "6.3.4" {
+    const input =
+        \\foo*bar*
+    ;
+    const output =
+        \\<p>foo<em>bar</em></p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Nesting inlines is possible.
+
+// ```zig
+test "6.1.5" {
+    const input =
+        \\*foo **bar** baz*
+    ;
+    const output =
+        \\<p><em>foo <strong>bar</strong> baz</em></p>
     ;
     try th.expectParseMDZ(input, output);
 }

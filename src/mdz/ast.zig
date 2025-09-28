@@ -12,6 +12,11 @@ pub const Block = enum(u3) {
     html_block,
 };
 
+const Flags = packed struct {
+    is_em: bool = false,
+    is_strong: bool = false,
+};
+
 const max_stack_len = 12;
 
 pub const StackError = error{BlockStackOverflow};
@@ -19,11 +24,13 @@ pub const StackError = error{BlockStackOverflow};
 pub const BlockState = struct {
     items: [max_stack_len]?Block,
     len: usize,
+    flags: Flags,
 
     pub fn init() BlockState {
         var state = BlockState{
             .items = undefined,
             .len = 0,
+            .flags = Flags{},
         };
         @memset(&state.items, null);
         return state;

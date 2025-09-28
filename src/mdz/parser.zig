@@ -28,25 +28,43 @@ fn takeNewlineExclusive(r: *Reader) Reader.DelimiterError![]u8 {
 
 fn printEscapedHtml(c: u8, w: *Writer) Writer.Error!void {
     switch (c) {
-        '>' => try w.print("&gt;", .{}),
-        '<' => try w.print("&lt;", .{}),
-        '&' => try w.print("&amp;", .{}),
-        else => try w.print("{c}", .{c}),
+        '>' => try w.printAscii("&gt;", .{}),
+        '<' => try w.printAscii("&lt;", .{}),
+        '&' => try w.printAscii("&amp;", .{}),
+        else => try w.printAsciiChar(c, .{}),
     }
 }
 
-fn processInlines(inlines: []u8, w: *Writer) Writer.Error!void {
+fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) Writer.Error!void {
     var i: usize = 0;
-    while (i < inlines.len) : (i += 1) {
-        switch (inlines[i]) {
-            '\\' => {
-                i += 1;
-                if (i < inlines.len) {
-                    @branchHint(.likely);
-                    try printEscapedHtml(inlines[i], w);
+    while (i < line.len) : (i += 1) {
+        switch (line[i]) {
+            '*' => {
+                if (i + 1 < line.len and line[i + 1] == '*') {
+                    i += 1;
+                    if (state.flags.is_strong) {
+                        try w.printAscii("</strong>", .{});
+                    } else {
+                        try w.printAscii("<strong>", .{});
+                    }
+                    state.flags.is_strong = !state.flags.is_strong;
+                } else {
+                    if (state.flags.is_em) {
+                        try w.printAscii("</em>", .{});
+                    } else {
+                        try w.printAscii("<em>", .{});
+                    }
+                    state.flags.is_em = !state.flags.is_em;
                 }
             },
-            else => try w.print("{c}", .{inlines[i]}),
+            '\\' => {
+                i += 1;
+                if (i < line.len) {
+                    @branchHint(.likely);
+                    try printEscapedHtml(line[i], w);
+                }
+            },
+            else => try w.printAsciiChar(line[i], .{}),
         }
     }
 }
@@ -56,13 +74,12 @@ fn closeBlocks(w: *Writer, state: *ast.BlockState, depth: usize) Writer.Error!vo
         state.items[state.len - 1] = null;
         state.len -= 1;
     }) switch (state.items[state.len - 1].?) {
-        .block_quote => try w.print("</blockquote>\n", .{}),
-        .unordered_list => try w.print("</li>\n</ul>\n", .{}),
-        .ordered_list => try w.print("</li>\n</ol>\n", .{}),
-        .paragraph => try w.print("</p>\n", .{}),
-        .paragraph_hidden => {},
-        .code_block => try w.print("</code></pre>\n", .{}),
-        .html_block => {},
+        .block_quote => try w.printAscii("</blockquote>\n", .{}),
+        .unordered_list => try w.printAscii("</li>\n</ul>\n", .{}),
+        .ordered_list => try w.printAscii("</li>\n</ol>\n", .{}),
+        .paragraph => try w.printAscii("</p>\n", .{}),
+        .paragraph_hidden, .html_block => {},
+        .code_block => try w.printAscii("</code></pre>\n", .{}),
     };
 }
 
@@ -92,7 +109,7 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                     line = line[2..];
                 } else if (line.len > 1 and std.mem.eql(u8, line[0..2], "* ")) {
                     try closeBlocks(w, state, depth + 1);
-                    try w.print("</li>\n<li>", .{});
+                    try w.printAscii("</li>\n<li>", .{});
                     line = line[2..];
                 } else {
                     try closeBlocks(w, state, depth);
@@ -104,7 +121,7 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                     line = line[3..];
                 } else if (line.len > 2 and std.mem.eql(u8, line[0..3], "1. ")) {
                     try closeBlocks(w, state, depth + 1);
-                    try w.print("</li>\n<li>", .{});
+                    try w.printAscii("</li>\n<li>", .{});
                     line = line[3..];
                 } else {
                     try closeBlocks(w, state, depth);
@@ -115,13 +132,13 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                 if (line.len == 0) {
                     try closeBlocks(w, state, depth);
                 } else {
-                    try w.print("\n", .{}); // lazy continuation
-                    try processInlines(line, w);
+                    try w.printAsciiChar('\n', .{}); // lazy continuation
+                    try processInlines(line, w, state);
                 }
                 return;
             },
             .paragraph_hidden => {
-                try w.print("\n", .{}); // lazy continuation
+                try w.printAsciiChar('\n', .{}); // lazy continuation
                 break;
             },
             .code_block => {
@@ -129,7 +146,7 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                     try closeBlocks(w, state, depth);
                 } else {
                     for (line) |c| try printEscapedHtml(c, w);
-                    try w.print("\n", .{});
+                    try w.printAsciiChar('\n', .{});
                 }
                 return;
             },
@@ -158,56 +175,56 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
 
     if (line.len > 1 and std.mem.eql(u8, line[0..2], "> ")) { // block quote
         try state.push(.block_quote);
-        try w.print("<blockquote>\n", .{});
+        try w.printAscii("<blockquote>\n", .{});
         return processLine(line[2..], w, state, depth + 1);
     } else if (line.len > 1 and std.mem.eql(u8, line[0..2], "* ")) { // unordered list
         try state.push(.unordered_list);
-        try w.print("<ul>\n<li>", .{});
+        try w.printAscii("<ul>\n<li>", .{});
         return processLine(line[2..], w, state, depth + 1);
     } else if (line.len > 2 and std.mem.eql(u8, line[0..3], "1. ")) { // ordered list
         try state.push(.ordered_list);
-        try w.print("<ol>\n<li>", .{});
+        try w.printAscii("<ol>\n<li>", .{});
         return processLine(line[3..], w, state, depth + 1);
     } else if (line.len > 2 and std.mem.eql(u8, line[0..3], "```")) { // code block
         try state.push(.code_block);
+        try w.printAscii("<pre><code", .{});
         if (line[3..].len > 0) {
-            try w.print("<pre><code class=\"language-{s}\">", .{line[3..]});
-        } else {
-            try w.print("<pre><code>", .{});
+            try w.print(" class=\"language-{s}\"", .{line[3..]});
         }
+        try w.printAsciiChar('>', .{});
         return;
     } else if (line.len > 6 and std.mem.eql(u8, line[0..7], "###### ")) { // heading 6
-        try w.print("<h6>", .{});
-        try processInlines(line[7..], w);
-        try w.print("</h6>\n", .{});
+        try w.printAscii("<h6>", .{});
+        try processInlines(line[7..], w, state);
+        try w.printAscii("</h6>\n", .{});
         return;
     } else if (line.len > 5 and std.mem.eql(u8, line[0..6], "##### ")) { // heading 5
-        try w.print("<h5>", .{});
-        try processInlines(line[6..], w);
-        try w.print("</h5>\n", .{});
+        try w.printAscii("<h5>", .{});
+        try processInlines(line[6..], w, state);
+        try w.printAscii("</h5>\n", .{});
         return;
     } else if (line.len > 4 and std.mem.eql(u8, line[0..5], "#### ")) { // heading 4
-        try w.print("<h4>", .{});
-        try processInlines(line[5..], w);
-        try w.print("</h4>\n", .{});
+        try w.printAscii("<h4>", .{});
+        try processInlines(line[5..], w, state);
+        try w.printAscii("</h4>\n", .{});
         return;
     } else if (line.len > 3 and std.mem.eql(u8, line[0..4], "### ")) { // heading 3
-        try w.print("<h3>", .{});
-        try processInlines(line[4..], w);
-        try w.print("</h3>\n", .{});
+        try w.printAscii("<h3>", .{});
+        try processInlines(line[4..], w, state);
+        try w.printAscii("</h3>\n", .{});
         return;
     } else if (line.len > 2 and std.mem.eql(u8, line[0..3], "## ")) { // heading 2
-        try w.print("<h2>", .{});
-        try processInlines(line[3..], w);
-        try w.print("</h2>\n", .{});
+        try w.printAscii("<h2>", .{});
+        try processInlines(line[3..], w, state);
+        try w.printAscii("</h2>\n", .{});
         return;
     } else if (line.len > 1 and std.mem.eql(u8, line[0..2], "# ")) { // heading 1
-        try w.print("<h1>", .{});
-        try processInlines(line[2..], w);
-        try w.print("</h1>\n", .{});
+        try w.printAscii("<h1>", .{});
+        try processInlines(line[2..], w, state);
+        try w.printAscii("</h1>\n", .{});
         return;
     } else if (line.len == 3 and std.mem.eql(u8, line, "---")) { // thematic break
-        try w.print("<hr />\n", .{});
+        try w.printAscii("<hr />\n", .{});
         return;
     } else if (line.len > 1 and line[0] == '<' and std.ascii.isAlphabetic(line[1])) { // HTML block
         try state.push(.html_block);
@@ -216,7 +233,7 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
     } else { // paragraph
         if (state.len == 0) {
             try state.push(.paragraph);
-            try w.print("<p>", .{});
+            try w.printAscii("<p>", .{});
         } else {
             switch (state.items[state.len - 1].?) {
                 .unordered_list,
@@ -226,7 +243,7 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                 .paragraph_hidden => {},
                 else => {
                     try state.push(.paragraph);
-                    try w.print("<p>", .{});
+                    try w.printAscii("<p>", .{});
                 },
             }
         }
@@ -236,7 +253,7 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
     // process leaf blocks
     //
 
-    try processInlines(line, w);
+    try processInlines(line, w, state);
 }
 
 pub const ProcessDocumentError = error{ ReadFailed, StreamTooLong, WriteFailed } || ast.StackError;
