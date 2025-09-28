@@ -893,10 +893,10 @@ test "5.2.9" {
         \\```
     ;
     const output =
-        \\<p> ```
+        \\<p> <code></code><code>
         \\ aaa
         \\aaa
-        \\```</p>
+        \\</code><code></code></p>
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1014,18 +1014,17 @@ test "5.3.4" {
 
 // Contents are parsed as inlines.
 
-// TODO implement inlines
-// // ```zig
-// test "5.3.5" {
-//     const input =
-//         \\# foo *bar* \*baz\*
-//     ;
-//     const output =
-//         \\<h1>foo <em>bar</em> *baz*</h1>
-//     ;
-//     try th.expectParseMDZ(input, output);
-// }
-// // ```
+// ```zig
+test "5.3.5" {
+    const input =
+        \\# foo *bar* \*baz\*
+    ;
+    const output =
+        \\<h1>foo <em>bar</em> *baz*</h1>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
 
 // Indentation is not allowed.
 
@@ -1276,6 +1275,48 @@ test "6.1.5" {
     ;
     const output =
         \\<p><em>foo <strong>bar</strong> baz</em></p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ### 6.2. Code Spans
+
+// A code span begins and ends with a single backtick character and represents an inline segment of code. Any inline content within the code span is treated as literal text excluding backslashes. Because of this, any raw HTML will be escaped.
+
+// ```zig
+test "6.2.1" {
+    const input =
+        \\foo `bar`
+    ;
+    const output =
+        \\<p>foo <code>bar</code></p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "6.2.2" {
+    const input =
+        \\foo `<div>` bar
+    ;
+    const output =
+        \\<p>foo <code>&lt;div&gt;</code> bar</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// If a literal backtick needs to be typed within the code span, it can be escaped with a backslash.
+
+// ```zig
+test "6.2.3" {
+    const input =
+        \\the backtick character is `\``.
+    ;
+    const output =
+        \\<p>the backtick character is <code>`</code>.</p>
     ;
     try th.expectParseMDZ(input, output);
 }

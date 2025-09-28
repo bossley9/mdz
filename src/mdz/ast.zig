@@ -15,6 +15,7 @@ pub const Block = enum(u3) {
 const Flags = packed struct {
     is_em: bool = false,
     is_strong: bool = false,
+    is_code: bool = false,
 };
 
 const max_stack_len = 12;

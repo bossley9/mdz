@@ -38,7 +38,29 @@ fn printEscapedHtml(c: u8, w: *Writer) Writer.Error!void {
 fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) Writer.Error!void {
     var i: usize = 0;
     while (i < line.len) : (i += 1) {
+        if (state.flags.is_code) {
+            @branchHint(.unlikely);
+            switch (line[i]) {
+                '\\' => {
+                    i += 1;
+                    if (i < line.len) {
+                        @branchHint(.likely);
+                        try printEscapedHtml(line[i], w);
+                    }
+                },
+                '`' => {
+                    try w.printAscii("</code>", .{});
+                    state.flags.is_code = false;
+                },
+                else => try printEscapedHtml(line[i], w),
+            }
+            continue;
+        }
         switch (line[i]) {
+            '`' => {
+                try w.printAscii("<code>", .{});
+                state.flags.is_code = true;
+            },
             '*' => {
                 if (i + 1 < line.len and line[i + 1] == '*') {
                     i += 1;
