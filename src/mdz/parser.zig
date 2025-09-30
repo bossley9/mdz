@@ -36,6 +36,7 @@ fn printEscapedHtml(c: u8, w: *Writer) Writer.Error!void {
 }
 
 fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) Writer.Error!void {
+    var ref_index: ?usize = null;
     var i: usize = 0;
     while (i < line.len) : (i += 1) {
         if (state.flags.is_code) {
@@ -77,6 +78,31 @@ fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) Writer.Error!v
                         try w.printAscii("<em>", .{});
                     }
                     state.flags.is_em = !state.flags.is_em;
+                }
+            },
+            '[' => {
+                state.flags.is_link = true;
+                ref_index = i;
+                try w.printAscii("<a href=\"", .{});
+                i = i + std.mem.indexOf(u8, line[i..], "](").? + 1;
+            },
+            ')' => {
+                if (state.flags.is_link) {
+                    const new_ref_index = i;
+                    i = ref_index.?;
+                    ref_index = new_ref_index;
+                    try w.printAscii("\">", .{});
+                } else {
+                    try w.printAsciiChar(line[i], .{});
+                }
+            },
+            ']' => {
+                if (state.flags.is_link) {
+                    @branchHint(.likely);
+                    try w.printAscii("</a>", .{});
+                    i = ref_index.?;
+                    state.flags.is_link = false;
+                    ref_index = null;
                 }
             },
             '\\' => {

@@ -1210,9 +1210,9 @@ test "5.5.3" {
 }
 // ```
 
-// ## 6. Inlines
+// ## 6. Inline Content
 
-// Inline content is parsed after block structure is determined. Inline content is parsed character by character - that is, inlines do not self-close unlike blocks. It is the responsibilty of the writer to ensure that every inline content marker is properly closed.
+// Inline content is parsed after block structure is determined. Inline content is parsed character by character - that is, inlines do not self-close unlike blocks. It is the responsibilty of the writer to ensure that every inline content marker is properly closed. Additionally, all inlines depend on specific marker characters (`[`, `]`, `` ` ``, `*`, `\\`) that must be escaped. Non-escaped marker characters may lead to undefined behavior.
 
 // ### 6.1. Strong and Emphasis
 
@@ -1255,7 +1255,7 @@ test "6.1.3" {
 // ```
 
 // ```zig
-test "6.3.4" {
+test "6.1.4" {
     const input =
         \\foo*bar*
     ;
@@ -1282,7 +1282,7 @@ test "6.1.5" {
 
 // ### 6.2. Code Spans
 
-// A code span begins and ends with a single backtick character and represents an inline segment of code. Any inline content within the code span is treated as literal text excluding backslashes. Because of this, any raw HTML will be escaped.
+// A code span begins and ends with a single backtick character and represents an inline segment of code. Any inline content within the code span is treated as literal text excluding backslashes. Any raw HTML within a code span will be escaped.
 
 // ```zig
 test "6.2.1" {
@@ -1317,6 +1317,70 @@ test "6.2.3" {
     ;
     const output =
         \\<p>the backtick character is <code>`</code>.</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ### 6.3. Links
+
+// Links begin with a `[` starting marker, a `](` middle marker and end with a `)` marker. The content between the first two markers represents the link alt text while the content between the last two markers represents the link URI. All of these markers are required, including a non-empty link alt text and link URI. Links cannot span multiple lines even with lazy continuation.
+
+// ```zig
+test "6.3.1" {
+    const input =
+        \\[link here](https://example.com)
+    ;
+    const output =
+        \\<p><a href="https://example.com">link here</a></p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "6.3.2" {
+    const input =
+        \\here's [*emphasis* and `code` within a link](https://example.com)
+    ;
+    const output =
+        \\<p>here's <a href="https://example.com"><em>emphasis</em> and <code>code</code> within a link</a></p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "6.3.3" {
+    const input =
+        \\an \[escaped\](link)
+    ;
+    const output =
+        \\<p>an [escaped](link)</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "6.3.4" {
+    const input =
+        \\[link 1](https://example.com) and [link 2](https://example2.com)
+    ;
+    const output =
+        \\<p><a href="https://example.com">link 1</a> and <a href="https://example2.com">link 2</a></p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "6.3.5" {
+    const input =
+        \\link with [`literal \]\( symbols`](https://xyz.xyz) in the alt text
+    ;
+    const output =
+        \\<p>link with <a href="https://xyz.xyz"><code>literal ]( symbols</code></a> in the alt text</p>
     ;
     try th.expectParseMDZ(input, output);
 }
