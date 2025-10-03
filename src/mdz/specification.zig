@@ -617,7 +617,7 @@ test "4.2.5" {
 
 // ## 5. Leaf Blocks
 
-// ## 5.1. Paragraphs
+// ### 5.1. Paragraphs
 
 // A paragraph is a block that cannot be interpreted as any other kind of block. A paragraph can contain inline content.
 
@@ -746,7 +746,7 @@ test "5.1.7" {
 }
 // ```
 
-// ## 5.2. Code Blocks
+// ### 5.2. Code Blocks
 
 // A <dfn>code fence</dfn> is a sequence of three consecutive backtick characters. A code block begins with a code fence and ends with code fence. The opening code block line may optionally contain text immediately following the backtick characters. This text is called the <dfn>info string</dfn> and may not contain any non-alphabetic characters.
 
