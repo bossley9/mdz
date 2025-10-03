@@ -1503,3 +1503,43 @@ test "6.4.7" {
     try th.expectParseMDZ(input, output);
 }
 // ```
+
+// ### 6.5. Images
+
+// Images are identical in syntax to links save the starting marker, which begins with `![`. The content between the first two markers represents the image alt text while the content between the last two markers represents the image URI. Images cannot span multiple lines even with lazy continuation. One key distinction between links and images i s that image alt text cannot contain inline content. All image alt text symbols must be backslash escaped.
+
+// ```zig
+test "6.5.1" {
+    const input =
+        \\![my dog](https://example.com/dog.jpg)
+    ;
+    const output =
+        \\<p><img alt="my dog" src="https://example.com/dog.jpg" /></p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "6.5.2" {
+    const input =
+        \\my face looks like ![portrait](https://example.com/me.jpg) and looks beautiful
+    ;
+    const output =
+        \\<p>my face looks like <img alt="portrait" src="https://example.com/me.jpg" /> and looks beautiful</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "6.5.3" {
+    const input =
+        \\![escaping symbols like \* and \[ in alt](https://example.com/img.png)
+    ;
+    const output =
+        \\<p><img alt="escaping symbols like * and [ in alt" src="https://example.com/img.png" /></p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```

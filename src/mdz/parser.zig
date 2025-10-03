@@ -101,6 +101,9 @@ fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlines
                     i = ref_index.?;
                     ref_index = new_ref_index;
                     try w.printAscii("\">", .{});
+                } else if (state.flags.is_img) {
+                    try w.printAscii("\" />", .{});
+                    state.flags.is_img = false;
                 } else {
                     try w.printAsciiChar(line[i], .{});
                 }
@@ -123,6 +126,21 @@ fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlines
                     state.footnotes[fn_key] += 1;
                     state.flags.is_footnote_citation = false;
                     ref_index = null;
+                } else if (state.flags.is_img) {
+                    std.debug.assert(line[i + 1] == '(');
+                    i += 1;
+                    try w.printAscii("\" src=\"", .{});
+                } else {
+                    try w.printAsciiChar(line[i], .{});
+                }
+            },
+            '!' => {
+                if (i + 1 < line.len and line[i + 1] == '[') {
+                    state.flags.is_img = true;
+                    i += 1;
+                    try w.printAscii("<img alt=\"", .{});
+                } else {
+                    try w.printAsciiChar('!', .{});
                 }
             },
             '\\' => {
