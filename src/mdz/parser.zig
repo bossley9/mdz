@@ -64,6 +64,13 @@ fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlines
                 try w.printAscii("<code>", .{});
                 state.flags.is_code = true;
             },
+            '"' => {
+                if (state.flags.is_img) {
+                    try w.printAscii("&quot;", .{});
+                } else {
+                    try w.printAsciiChar('"', .{});
+                }
+            },
             '*' => {
                 if (i + 1 < line.len and line[i + 1] == '*') {
                     i += 1;

@@ -24,8 +24,10 @@ export async function parseMDZ(input) {
   const outputArr = new Uint8Array(memory.buffer, 0, outputLen);
   const output = new TextDecoder().decode(outputArr);
 
-  if (output.startsWith("error.")) {
-    throw new Error(output.substring(6));
+  // data can be written to std.io.Writer before an error occurs
+  if (/error\.\w+$/.test(output)) {
+    const index = output.lastIndexOf("error.") + 6;
+    throw new Error(output.substring(index));
   }
 
   return output;

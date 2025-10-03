@@ -22,7 +22,7 @@ const InlineFlags = packed struct {
     is_img: bool = false,
 };
 
-const max_stack_len = 12;
+const max_stack_len = 16;
 
 pub const StackError = error{BlockStackOverflow};
 
