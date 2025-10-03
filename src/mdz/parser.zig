@@ -35,7 +35,9 @@ fn printEscapedHtml(c: u8, w: *Writer) Writer.Error!void {
     }
 }
 
-fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) Writer.Error!void {
+const ProcessInlinesError = Writer.Error || std.fmt.ParseIntError;
+
+fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlinesError!void {
     var ref_index: ?usize = null;
     var i: usize = 0;
     while (i < line.len) : (i += 1) {
@@ -81,10 +83,17 @@ fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) Writer.Error!v
                 }
             },
             '[' => {
-                state.flags.is_link = true;
-                ref_index = i;
-                try w.printAscii("<a href=\"", .{});
-                i = i + std.mem.indexOf(u8, line[i..], "](").? + 1;
+                if (i + 1 < line.len and line[i + 1] == '^') {
+                    i += 1;
+                    ref_index = i + 1;
+                    state.flags.is_footnote_citation = true;
+                    try w.printAscii("<sup class=\"footnote-ref\"><a href=\"#fn", .{});
+                } else {
+                    state.flags.is_link = true;
+                    ref_index = i;
+                    try w.printAscii("<a href=\"", .{});
+                    i = i + std.mem.indexOf(u8, line[i..], "](").? + 1;
+                }
             },
             ')' => {
                 if (state.flags.is_link) {
@@ -98,10 +107,21 @@ fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) Writer.Error!v
             },
             ']' => {
                 if (state.flags.is_link) {
-                    @branchHint(.likely);
                     try w.printAscii("</a>", .{});
                     i = ref_index.?;
                     state.flags.is_link = false;
+                    ref_index = null;
+                } else if (state.flags.is_footnote_citation) {
+                    const fn_key = try std.fmt.parseInt(u8, line[ref_index.?..i], 10);
+                    const fn_num = state.footnotes[fn_key];
+
+                    if (fn_num > 0) {
+                        try w.print("\" id=\"fnref{d}:{d}\">[{d}:{d}]</a></sup>", .{ fn_key, fn_num, fn_key, fn_num });
+                    } else {
+                        try w.print("\" id=\"fnref{d}\">[{d}]</a></sup>", .{ fn_key, fn_key });
+                    }
+                    state.footnotes[fn_key] += 1;
+                    state.flags.is_footnote_citation = false;
                     ref_index = null;
                 }
             },
@@ -117,6 +137,24 @@ fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) Writer.Error!v
     }
 }
 
+fn processFootnoteReference(line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlinesError!void {
+    std.debug.assert(std.mem.eql(u8, line[0..2], "[^"));
+    var i: usize = 2;
+    while (i < line.len and line[i] != ']') : (i += 1) {}
+    const fn_key = try std.fmt.parseInt(u8, line[2..i], 10);
+    try w.print("<li id=\"fn{d}\" class=\"footnote-item\"><p>", .{fn_key});
+    try processInlines(line[i + 3 ..], w, state);
+    var j: usize = 0;
+    while (j < state.footnotes[fn_key]) : (j += 1) {
+        if (j > 0) {
+            try w.print(" <a href=\"#fnref{d}:{d}\" class=\"footnote-backref\">↩︎</a>", .{ fn_key, j });
+        } else {
+            try w.print(" <a href=\"#fnref{d}\" class=\"footnote-backref\">↩︎</a>", .{fn_key});
+        }
+    }
+    try w.printAscii("</p></li>\n", .{});
+}
+
 fn closeBlocks(w: *Writer, state: *ast.BlockState, depth: usize) Writer.Error!void {
     while (state.len > depth) : ({
         state.items[state.len - 1] = null;
@@ -128,10 +166,11 @@ fn closeBlocks(w: *Writer, state: *ast.BlockState, depth: usize) Writer.Error!vo
         .paragraph => try w.printAscii("</p>\n", .{}),
         .paragraph_hidden, .html_block => {},
         .code_block => try w.printAscii("</code></pre>\n", .{}),
+        .footnote_reference => try w.printAscii("</ol>\n", .{}),
     };
 }
 
-const ProcessLineError = Writer.Error || ast.StackError;
+const ProcessLineError = Writer.Error || ast.StackError || std.fmt.ParseIntError;
 
 fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting_depth: usize) ProcessLineError!void {
     var depth = starting_depth;
@@ -206,6 +245,14 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                 }
                 return;
             },
+            .footnote_reference => {
+                if (line.len > 1 and std.mem.eql(u8, line[0..2], "[^")) {
+                    try processFootnoteReference(line, w, state);
+                    return;
+                } else {
+                    try closeBlocks(w, state, depth);
+                }
+            },
         }
     }
 
@@ -271,6 +318,11 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
         try processInlines(line[2..], w, state);
         try w.printAscii("</h1>\n", .{});
         return;
+    } else if (line.len > 1 and std.mem.eql(u8, line[0..2], "[^")) { // footnote reference
+        try state.push(.footnote_reference);
+        try w.printAscii("<ol class=\"footnotes-list\">\n", .{});
+        try processFootnoteReference(line, w, state);
+        return;
     } else if (line.len == 3 and std.mem.eql(u8, line, "---")) { // thematic break
         try w.printAscii("<hr />\n", .{});
         return;
@@ -304,7 +356,7 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
     try processInlines(line, w, state);
 }
 
-pub const ProcessDocumentError = error{ ReadFailed, StreamTooLong, WriteFailed } || ast.StackError;
+pub const ProcessDocumentError = error{ ReadFailed, StreamTooLong } || ProcessLineError;
 
 /// Read an MDZ document from an input reader and incrementally write
 /// the output to writer.

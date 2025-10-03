@@ -1385,3 +1385,121 @@ test "6.3.5" {
     try th.expectParseMDZ(input, output);
 }
 // ```
+
+// ### 6.4. Footnotes
+
+// Footnotes are comprised of two parts: the footnote citation embedded in content and the footnote reference itself. Footnote citations can be considered inline content while footnote references can be considered leaf blocks.
+
+// A footnote citation begins with `[^`, contains a reference number, then ends with a `]` character. A footnote reference starts on its own line and begins with `[^`, contains a matching reference number, then uses a `]: ` marker to indicate the reference content may start. Markdown-Z performs no checking to ensure that references are all accounted for - it is the responsibility of the user to ensure that all references use the same characters to link to each other.
+
+// A footnote citation reference number must be between 0 and 127. Inline content is not allowed within a footnote citation, but it is allowed within a footnote reference.
+
+// ```zig
+test "6.4.1" {
+    const input =
+        \\If you're referring to the incident with the dragon[^1], I was barely involved.
+        \\
+        \\[^1]: Gandalf was heavily involved.
+    ;
+    const output =
+        \\<p>If you're referring to the incident with the dragon<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>, I was barely involved.</p>
+        \\<ol class="footnotes-list">
+        \\<li id="fn1" class="footnote-item"><p>Gandalf was heavily involved. <a href="#fnref1" class="footnote-backref">↩︎</a></p></li>
+        \\</ol>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "6.4.2" {
+    const input =
+        \\Dangling citations[^1] are not an error[^2].
+    ;
+    const output =
+        \\<p>Dangling citations<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup> are not an error<sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup>.</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "6.4.3" {
+    const input =
+        \\The same ref[^1] may be used twice[^1].
+    ;
+    const output =
+        \\<p>The same ref<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup> may be used twice<sup class="footnote-ref"><a href="#fn1" id="fnref1:1">[1:1]</a></sup>.</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "6.4.4" {
+    const input =
+        \\[^1]: A footnote reference by itself
+    ;
+    const output =
+        \\<ol class="footnotes-list">
+        \\<li id="fn1" class="footnote-item"><p>A footnote reference by itself</p></li>
+        \\</ol>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Footnote references will be grouped together in the same footnote reference block.
+
+// ```zig
+test "6.4.5" {
+    const input =
+        \\one[^1] two[^2].
+        \\
+        \\[^1]: footnote 1
+        \\[^2]: footnote 2
+    ;
+    const output =
+        \\<p>one<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup> two<sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup>.</p>
+        \\<ol class="footnotes-list">
+        \\<li id="fn1" class="footnote-item"><p>footnote 1 <a href="#fnref1" class="footnote-backref">↩︎</a></p></li>
+        \\<li id="fn2" class="footnote-item"><p>footnote 2 <a href="#fnref2" class="footnote-backref">↩︎</a></p></li>
+        \\</ol>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "6.4.6" {
+    const input =
+        \\used[^1] twice[^1].
+        \\
+        \\[^1]: footnote
+    ;
+    const output =
+        \\<p>used<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup> twice<sup class="footnote-ref"><a href="#fn1" id="fnref1:1">[1:1]</a></sup>.</p>
+        \\<ol class="footnotes-list">
+        \\<li id="fn1" class="footnote-item"><p>footnote <a href="#fnref1" class="footnote-backref">↩︎</a> <a href="#fnref1:1" class="footnote-backref">↩︎</a></p></li>
+        \\</ol>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "6.4.7" {
+    const input =
+        \\quote[^1]
+        \\
+        \\[^1]: references may contain `inline content`.
+    ;
+    const output =
+        \\<p>quote<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup></p>
+        \\<ol class="footnotes-list">
+        \\<li id="fn1" class="footnote-item"><p>references may contain <code>inline content</code>. <a href="#fnref1" class="footnote-backref">↩︎</a></p></li>
+        \\</ol>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
