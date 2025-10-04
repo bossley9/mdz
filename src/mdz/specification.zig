@@ -597,7 +597,7 @@ test "4.2.5" {
         \\  
         \\  > quote
         \\  
-        \\  bar
+        \\  *bar*
         \\* baz
     ;
     const output =
@@ -605,7 +605,7 @@ test "4.2.5" {
         \\<li>foo<blockquote>
         \\<p>quote</p>
         \\</blockquote>
-        \\bar</li>
+        \\<em>bar</em></li>
         \\<li>baz</li>
         \\</ul>
     ;
@@ -1243,8 +1243,8 @@ test "5.6.1" {
         \\<table>
         \\<thead>
         \\<tr>
-        \\<td>col 1</td>
-        \\<td>col 2</td>
+        \\<th>col 1</th>
+        \\<th>col 2</th>
         \\</tr>
         \\</thead>
         \\<tbody>
@@ -1270,8 +1270,8 @@ test "5.6.2" {
         \\<table>
         \\<thead>
         \\<tr>
-        \\<td><em>important</em></td>
-        \\<td>col 2</td>
+        \\<th><em>important</em></th>
+        \\<th>col 2</th>
         \\</tr>
         \\</thead>
         \\<tbody>

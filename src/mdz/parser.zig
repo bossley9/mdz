@@ -355,12 +355,12 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
         try state.push(.table);
         _ = try w.write("<table>\n<thead>\n<tr>\n");
         while (line.len > 1) {
-            _ = try w.write("<td>");
+            _ = try w.write("<th>");
             line = line[2..];
             const col_end = std.mem.indexOf(u8, line, " |").?;
             try processInlines(line[0..col_end], w, state);
             line = line[col_end + 1 ..];
-            _ = try w.write("</td>\n");
+            _ = try w.write("</th>\n");
         }
         _ = try w.write("</tr>\n</thead>\n<tbody>\n");
         return;
