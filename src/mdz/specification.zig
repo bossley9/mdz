@@ -580,8 +580,7 @@ test "4.2.4" {
     ;
     const output =
         \\<ul>
-        \\<li>foo
-        \\<pre><code>code too
+        \\<li>foo<pre><code>code too
         \\</code></pre>
         \\and continuation</li>
         \\<li>bar</li>
@@ -603,12 +602,31 @@ test "4.2.5" {
     ;
     const output =
         \\<ul>
-        \\<li>foo
-        \\<blockquote>
+        \\<li>foo<blockquote>
         \\<p>quote</p>
         \\</blockquote>
         \\bar</li>
         \\<li>baz</li>
+        \\</ul>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "4.2.6" {
+    const input =
+        \\* lazy
+        \\  line
+        \\  continuation
+        \\* works
+    ;
+    const output =
+        \\<ul>
+        \\<li>lazy
+        \\line
+        \\continuation</li>
+        \\<li>works</li>
         \\</ul>
     ;
     try th.expectParseMDZ(input, output);

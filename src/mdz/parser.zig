@@ -245,7 +245,7 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                     try closeBlocks(w, state, depth);
                 }
             },
-            .paragraph => {
+            .paragraph, .paragraph_hidden => {
                 if (line.len == 0) {
                     try closeBlocks(w, state, depth);
                 } else {
@@ -253,10 +253,6 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                     try processInlines(line, w, state);
                 }
                 return;
-            },
-            .paragraph_hidden => {
-                _ = try w.write("\n"); // lazy continuation
-                break;
             },
             .code_block => {
                 if (std.mem.startsWith(u8, line, "```")) {
@@ -383,8 +379,7 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                 .unordered_list,
                 .ordered_list,
                 => try state.push(.paragraph_hidden),
-                .paragraph => unreachable,
-                .paragraph_hidden => {},
+                .paragraph, .paragraph_hidden => unreachable,
                 else => {
                     try state.push(.paragraph);
                     _ = try w.write("<p>");
