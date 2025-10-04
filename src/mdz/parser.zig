@@ -198,7 +198,7 @@ fn closeBlocks(w: *Writer, state: *ast.BlockState, depth: usize) Writer.Error!vo
         .paragraph => _ = try w.write("</p>\n"),
         .paragraph_hidden, .html_block => {},
         .code_block => _ = try w.write("</code></pre>\n"),
-        .footnote_reference => _ = try w.write("</ol>\n"),
+        .footnote_reference => _ = try w.write("</ol>\n</section>\n"),
         .table => _ = try w.write("</tbody>\n</table>\n"),
     };
 }
@@ -349,7 +349,7 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
         return processHeading(1, line, w, state);
     } else if (std.mem.startsWith(u8, line, "[^")) { // footnote reference
         try state.push(.footnote_reference);
-        _ = try w.write("<ol class=\"footnotes-list\">\n");
+        _ = try w.write("<section class=\"footnotes\">\n<ol class=\"footnotes-list\">\n");
         return processFootnoteReference(line, w, state);
     } else if (std.mem.startsWith(u8, line, "| ")) { // table
         try state.push(.table);

@@ -1479,9 +1479,11 @@ test "6.4.1" {
     ;
     const output =
         \\<p>If you're referring to the incident with the dragon<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>, I was barely involved.</p>
+        \\<section class="footnotes">
         \\<ol class="footnotes-list">
         \\<li id="fn1" class="footnote-item"><p>Gandalf was heavily involved. <a href="#fnref1" class="footnote-backref">↩︎</a></p></li>
         \\</ol>
+        \\</section>
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1517,9 +1519,11 @@ test "6.4.4" {
         \\[^1]: A footnote reference by itself
     ;
     const output =
+        \\<section class="footnotes">
         \\<ol class="footnotes-list">
         \\<li id="fn1" class="footnote-item"><p>A footnote reference by itself</p></li>
         \\</ol>
+        \\</section>
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1537,10 +1541,12 @@ test "6.4.5" {
     ;
     const output =
         \\<p>one<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup> two<sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup>.</p>
+        \\<section class="footnotes">
         \\<ol class="footnotes-list">
         \\<li id="fn1" class="footnote-item"><p>footnote 1 <a href="#fnref1" class="footnote-backref">↩︎</a></p></li>
         \\<li id="fn2" class="footnote-item"><p>footnote 2 <a href="#fnref2" class="footnote-backref">↩︎</a></p></li>
         \\</ol>
+        \\</section>
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1555,9 +1561,11 @@ test "6.4.6" {
     ;
     const output =
         \\<p>used<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup> twice<sup class="footnote-ref"><a href="#fn1" id="fnref1:1">[1:1]</a></sup>.</p>
+        \\<section class="footnotes">
         \\<ol class="footnotes-list">
         \\<li id="fn1" class="footnote-item"><p>footnote <a href="#fnref1" class="footnote-backref">↩︎</a> <a href="#fnref1:1" class="footnote-backref">↩︎</a></p></li>
         \\</ol>
+        \\</section>
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1572,9 +1580,11 @@ test "6.4.7" {
     ;
     const output =
         \\<p>quote<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup></p>
+        \\<section class="footnotes">
         \\<ol class="footnotes-list">
         \\<li id="fn1" class="footnote-item"><p>references may contain <code>inline content</code>. <a href="#fnref1" class="footnote-backref">↩︎</a></p></li>
         \\</ol>
+        \\</section>
     ;
     try th.expectParseMDZ(input, output);
 }
