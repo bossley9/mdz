@@ -1641,3 +1641,19 @@ test "6.5.4" {
     try th.expectParseMDZ(input, output);
 }
 // ```
+
+// ### 6.6. Strikethroughs
+
+// A Strikethrough represents a removal of outdated content that may no longer be accurate or relevant. It is started and ended with the `~~` marker.
+
+// ```zig
+test "6.6.1" {
+    const input =
+        \\Tomorrow is ~~Tuesday~~ Wednesday.
+    ;
+    const output =
+        \\<p>Tomorrow is <s>Tuesday</s> Wednesday.</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```

@@ -89,6 +89,19 @@ fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlines
                     state.flags.is_em = !state.flags.is_em;
                 }
             },
+            '~' => {
+                if (std.mem.startsWith(u8, line[i..], "~~")) {
+                    i += 1;
+                    if (state.flags.is_strike) {
+                        _ = try w.write("</s>");
+                    } else {
+                        _ = try w.write("<s>");
+                    }
+                    state.flags.is_strike = !state.flags.is_strike;
+                } else {
+                    _ = try w.write("~");
+                }
+            },
             '[' => {
                 if (i + 1 < line.len and line[i + 1] == '^') {
                     i += 1;
