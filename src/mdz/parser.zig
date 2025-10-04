@@ -28,9 +28,9 @@ fn takeNewlineExclusive(r: *Reader) Reader.DelimiterError![]u8 {
 
 fn printEscapedHtml(c: u8, w: *Writer) Writer.Error!void {
     switch (c) {
-        '>' => try w.printAscii("&gt;", .{}),
-        '<' => try w.printAscii("&lt;", .{}),
-        '&' => try w.printAscii("&amp;", .{}),
+        '>' => _ = try w.write("&gt;"),
+        '<' => _ = try w.write("&lt;"),
+        '&' => _ = try w.write("&amp;"),
         else => try w.printAsciiChar(c, .{}),
     }
 }
@@ -52,7 +52,7 @@ fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlines
                     }
                 },
                 '`' => {
-                    try w.printAscii("</code>", .{});
+                    _ = try w.write("</code>");
                     state.flags.is_code = false;
                 },
                 else => try printEscapedHtml(line[i], w),
@@ -61,30 +61,30 @@ fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlines
         }
         switch (line[i]) {
             '`' => {
-                try w.printAscii("<code>", .{});
+                _ = try w.write("<code>");
                 state.flags.is_code = true;
             },
             '"' => {
                 if (state.flags.is_img) {
-                    try w.printAscii("&quot;", .{});
+                    _ = try w.write("&quot;");
                 } else {
-                    try w.printAsciiChar('"', .{});
+                    _ = try w.write("\"");
                 }
             },
             '*' => {
                 if (i + 1 < line.len and line[i + 1] == '*') {
                     i += 1;
                     if (state.flags.is_strong) {
-                        try w.printAscii("</strong>", .{});
+                        _ = try w.write("</strong>");
                     } else {
-                        try w.printAscii("<strong>", .{});
+                        _ = try w.write("<strong>");
                     }
                     state.flags.is_strong = !state.flags.is_strong;
                 } else {
                     if (state.flags.is_em) {
-                        try w.printAscii("</em>", .{});
+                        _ = try w.write("</em>");
                     } else {
-                        try w.printAscii("<em>", .{});
+                        _ = try w.write("<em>");
                     }
                     state.flags.is_em = !state.flags.is_em;
                 }
@@ -94,11 +94,11 @@ fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlines
                     i += 1;
                     ref_index = i + 1;
                     state.flags.is_footnote_citation = true;
-                    try w.printAscii("<sup class=\"footnote-ref\"><a href=\"#fn", .{});
+                    _ = try w.write("<sup class=\"footnote-ref\"><a href=\"#fn");
                 } else {
                     state.flags.is_link = true;
                     ref_index = i;
-                    try w.printAscii("<a href=\"", .{});
+                    _ = try w.write("<a href=\"");
                     i = i + std.mem.indexOf(u8, line[i..], "](").? + 1;
                 }
             },
@@ -107,17 +107,17 @@ fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlines
                     const new_ref_index = i;
                     i = ref_index.?;
                     ref_index = new_ref_index;
-                    try w.printAscii("\">", .{});
+                    _ = try w.write("\">");
                 } else if (state.flags.is_img) {
-                    try w.printAscii("\" />", .{});
+                    _ = try w.write("\" />");
                     state.flags.is_img = false;
                 } else {
-                    try w.printAsciiChar(line[i], .{});
+                    _ = try w.write(")");
                 }
             },
             ']' => {
                 if (state.flags.is_link) {
-                    try w.printAscii("</a>", .{});
+                    _ = try w.write("</a>");
                     i = ref_index.?;
                     state.flags.is_link = false;
                     ref_index = null;
@@ -136,18 +136,18 @@ fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlines
                 } else if (state.flags.is_img) {
                     std.debug.assert(line[i + 1] == '(');
                     i += 1;
-                    try w.printAscii("\" src=\"", .{});
+                    _ = try w.write("\" src=\"");
                 } else {
-                    try w.printAsciiChar(line[i], .{});
+                    _ = try w.write("]");
                 }
             },
             '!' => {
                 if (i + 1 < line.len and line[i + 1] == '[') {
                     state.flags.is_img = true;
                     i += 1;
-                    try w.printAscii("<img alt=\"", .{});
+                    _ = try w.write("<img alt=\"");
                 } else {
-                    try w.printAsciiChar('!', .{});
+                    _ = try w.write("!");
                 }
             },
             '\\' => {
@@ -171,13 +171,19 @@ fn processFootnoteReference(line: []u8, w: *Writer, state: *ast.BlockState) Proc
     try processInlines(line[i + 3 ..], w, state);
     var j: usize = 0;
     while (j < state.footnotes[fn_key]) : (j += 1) {
+        try w.print(" <a href=\"#fnref{d}", .{fn_key});
         if (j > 0) {
-            try w.print(" <a href=\"#fnref{d}:{d}\" class=\"footnote-backref\">↩︎</a>", .{ fn_key, j });
-        } else {
-            try w.print(" <a href=\"#fnref{d}\" class=\"footnote-backref\">↩︎</a>", .{fn_key});
+            try w.print(":{d}", .{j});
         }
+        _ = try w.write("\" class=\"footnote-backref\">↩︎</a>");
     }
-    try w.printAscii("</p></li>\n", .{});
+    _ = try w.write("</p></li>\n");
+}
+
+fn processHeading(level: u3, line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlinesError!void {
+    _ = try w.print("<h{d}>", .{level});
+    try processInlines(line[level + 1 ..], w, state);
+    _ = try w.print("</h{d}>\n", .{level});
 }
 
 fn closeBlocks(w: *Writer, state: *ast.BlockState, depth: usize) Writer.Error!void {
@@ -185,13 +191,13 @@ fn closeBlocks(w: *Writer, state: *ast.BlockState, depth: usize) Writer.Error!vo
         state.items[state.len - 1] = null;
         state.len -= 1;
     }) switch (state.items[state.len - 1].?) {
-        .block_quote => try w.printAscii("</blockquote>\n", .{}),
-        .unordered_list => try w.printAscii("</li>\n</ul>\n", .{}),
-        .ordered_list => try w.printAscii("</li>\n</ol>\n", .{}),
-        .paragraph => try w.printAscii("</p>\n", .{}),
+        .block_quote => _ = try w.write("</blockquote>\n"),
+        .unordered_list => _ = try w.write("</li>\n</ul>\n"),
+        .ordered_list => _ = try w.write("</li>\n</ol>\n"),
+        .paragraph => _ = try w.write("</p>\n"),
         .paragraph_hidden, .html_block => {},
-        .code_block => try w.printAscii("</code></pre>\n", .{}),
-        .footnote_reference => try w.printAscii("</ol>\n", .{}),
+        .code_block => _ = try w.write("</code></pre>\n"),
+        .footnote_reference => _ = try w.write("</ol>\n"),
     };
 }
 
@@ -209,56 +215,53 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
         const block = state.items[depth].?;
         switch (block) {
             .block_quote => {
-                if (line.len > 1 and std.mem.eql(u8, line[0..2], "> ")) {
+                if (std.mem.startsWith(u8, line, "> ")) {
                     line = line[2..];
                 } else {
                     try closeBlocks(w, state, depth);
-                    break;
                 }
             },
             .unordered_list => {
-                if (line.len > 1 and std.mem.eql(u8, line[0..2], "  ")) {
+                if (std.mem.startsWith(u8, line, "  ")) {
                     line = line[2..];
-                } else if (line.len > 1 and std.mem.eql(u8, line[0..2], "* ")) {
+                } else if (std.mem.startsWith(u8, line, "* ")) {
                     try closeBlocks(w, state, depth + 1);
-                    try w.printAscii("</li>\n<li>", .{});
+                    _ = try w.write("</li>\n<li>");
                     line = line[2..];
                 } else {
                     try closeBlocks(w, state, depth);
-                    break;
                 }
             },
             .ordered_list => {
-                if (line.len > 2 and std.mem.eql(u8, line[0..3], "   ")) {
+                if (std.mem.startsWith(u8, line, "   ")) {
                     line = line[3..];
-                } else if (line.len > 2 and std.mem.eql(u8, line[0..3], "1. ")) {
+                } else if (std.mem.startsWith(u8, line, "1. ")) {
                     try closeBlocks(w, state, depth + 1);
-                    try w.printAscii("</li>\n<li>", .{});
+                    _ = try w.write("</li>\n<li>");
                     line = line[3..];
                 } else {
                     try closeBlocks(w, state, depth);
-                    break;
                 }
             },
             .paragraph => {
                 if (line.len == 0) {
                     try closeBlocks(w, state, depth);
                 } else {
-                    try w.printAsciiChar('\n', .{}); // lazy continuation
+                    _ = try w.write("\n"); // lazy continuation
                     try processInlines(line, w, state);
                 }
                 return;
             },
             .paragraph_hidden => {
-                try w.printAsciiChar('\n', .{}); // lazy continuation
+                _ = try w.write("\n"); // lazy continuation
                 break;
             },
             .code_block => {
-                if (line.len > 2 and std.mem.eql(u8, line[0..3], "```")) {
+                if (std.mem.startsWith(u8, line, "```")) {
                     try closeBlocks(w, state, depth);
                 } else {
                     for (line) |c| try printEscapedHtml(c, w);
-                    try w.printAsciiChar('\n', .{});
+                    _ = try w.write("\n");
                 }
                 return;
             },
@@ -271,9 +274,8 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                 return;
             },
             .footnote_reference => {
-                if (line.len > 1 and std.mem.eql(u8, line[0..2], "[^")) {
-                    try processFootnoteReference(line, w, state);
-                    return;
+                if (std.mem.startsWith(u8, line, "[^")) {
+                    return processFootnoteReference(line, w, state);
                 } else {
                     try closeBlocks(w, state, depth);
                 }
@@ -293,72 +295,52 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
     // create new blocks
     //
 
-    if (line.len > 1 and std.mem.eql(u8, line[0..2], "> ")) { // block quote
+    if (std.mem.startsWith(u8, line, "> ")) { // block quote
         try state.push(.block_quote);
-        try w.printAscii("<blockquote>\n", .{});
+        _ = try w.write("<blockquote>\n");
         return processLine(line[2..], w, state, depth + 1);
-    } else if (line.len > 1 and std.mem.eql(u8, line[0..2], "* ")) { // unordered list
+    } else if (std.mem.startsWith(u8, line, "* ")) { // unordered list
         try state.push(.unordered_list);
-        try w.printAscii("<ul>\n<li>", .{});
+        _ = try w.write("<ul>\n<li>");
         return processLine(line[2..], w, state, depth + 1);
-    } else if (line.len > 2 and std.mem.eql(u8, line[0..3], "1. ")) { // ordered list
+    } else if (std.mem.startsWith(u8, line, "1. ")) { // ordered list
         try state.push(.ordered_list);
-        try w.printAscii("<ol>\n<li>", .{});
+        _ = try w.write("<ol>\n<li>");
         return processLine(line[3..], w, state, depth + 1);
-    } else if (line.len > 2 and std.mem.eql(u8, line[0..3], "```")) { // code block
+    } else if (std.mem.startsWith(u8, line, "```")) { // code block
         try state.push(.code_block);
-        try w.printAscii("<pre><code", .{});
+        _ = try w.write("<pre><code");
         if (line[3..].len > 0) {
             try w.print(" class=\"language-{s}\"", .{line[3..]});
         }
-        try w.printAsciiChar('>', .{});
+        _ = try w.write(">");
         return;
-    } else if (line.len > 6 and std.mem.eql(u8, line[0..7], "###### ")) { // heading 6
-        try w.printAscii("<h6>", .{});
-        try processInlines(line[7..], w, state);
-        try w.printAscii("</h6>\n", .{});
-        return;
-    } else if (line.len > 5 and std.mem.eql(u8, line[0..6], "##### ")) { // heading 5
-        try w.printAscii("<h5>", .{});
-        try processInlines(line[6..], w, state);
-        try w.printAscii("</h5>\n", .{});
-        return;
-    } else if (line.len > 4 and std.mem.eql(u8, line[0..5], "#### ")) { // heading 4
-        try w.printAscii("<h4>", .{});
-        try processInlines(line[5..], w, state);
-        try w.printAscii("</h4>\n", .{});
-        return;
-    } else if (line.len > 3 and std.mem.eql(u8, line[0..4], "### ")) { // heading 3
-        try w.printAscii("<h3>", .{});
-        try processInlines(line[4..], w, state);
-        try w.printAscii("</h3>\n", .{});
-        return;
-    } else if (line.len > 2 and std.mem.eql(u8, line[0..3], "## ")) { // heading 2
-        try w.printAscii("<h2>", .{});
-        try processInlines(line[3..], w, state);
-        try w.printAscii("</h2>\n", .{});
-        return;
-    } else if (line.len > 1 and std.mem.eql(u8, line[0..2], "# ")) { // heading 1
-        try w.printAscii("<h1>", .{});
-        try processInlines(line[2..], w, state);
-        try w.printAscii("</h1>\n", .{});
-        return;
-    } else if (line.len > 1 and std.mem.eql(u8, line[0..2], "[^")) { // footnote reference
+    } else if (std.mem.startsWith(u8, line, "###### ")) { // heading 6
+        return processHeading(6, line, w, state);
+    } else if (std.mem.startsWith(u8, line, "##### ")) { // heading 5
+        return processHeading(5, line, w, state);
+    } else if (std.mem.startsWith(u8, line, "#### ")) { // heading 4
+        return processHeading(4, line, w, state);
+    } else if (std.mem.startsWith(u8, line, "### ")) { // heading 3
+        return processHeading(3, line, w, state);
+    } else if (std.mem.startsWith(u8, line, "## ")) { // heading 2
+        return processHeading(2, line, w, state);
+    } else if (std.mem.startsWith(u8, line, "# ")) { // heading 1
+        return processHeading(1, line, w, state);
+    } else if (std.mem.startsWith(u8, line, "[^")) { // footnote reference
         try state.push(.footnote_reference);
-        try w.printAscii("<ol class=\"footnotes-list\">\n", .{});
-        try processFootnoteReference(line, w, state);
-        return;
-    } else if (line.len == 3 and std.mem.eql(u8, line, "---")) { // thematic break
-        try w.printAscii("<hr />\n", .{});
+        _ = try w.write("<ol class=\"footnotes-list\">\n");
+        return processFootnoteReference(line, w, state);
+    } else if (std.mem.eql(u8, line, "---")) { // thematic break
+        _ = try w.write("<hr />\n");
         return;
     } else if (line.len > 1 and line[0] == '<' and std.ascii.isAlphabetic(line[1])) { // HTML block
         try state.push(.html_block);
-        try processLine(line, w, state, depth);
-        return;
+        return processLine(line, w, state, depth);
     } else { // paragraph
         if (state.len == 0) {
             try state.push(.paragraph);
-            try w.printAscii("<p>", .{});
+            _ = try w.write("<p>");
         } else {
             switch (state.items[state.len - 1].?) {
                 .unordered_list,
@@ -368,7 +350,7 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                 .paragraph_hidden => {},
                 else => {
                     try state.push(.paragraph);
-                    try w.printAscii("<p>", .{});
+                    _ = try w.write("<p>");
                 },
             }
         }
