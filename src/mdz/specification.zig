@@ -1210,6 +1210,64 @@ test "5.5.3" {
 }
 // ```
 
+// ### 5.6. Tables
+
+// A table is an arrangement of data with rows and columns, consisting of a header row, a delimiter row separating the header from the data, and zero or more data rows. Within a row, each column is separated by pipes (`|`) and exactly one space character of padding for column contents. The delimiter row consists of cells whose contents are only hyphens (`-`). Unlike Github-Flavored Markdown, no column alignment symbols exist. The contents of each cell is parsed as inlines.
+
+// ```zig
+test "5.6.1" {
+    const input =
+        \\| col 1 | col 2 |
+        \\| ------ | ------ |
+        \\| data 1 | data 2 |
+    ;
+    const output =
+        \\<table>
+        \\<thead>
+        \\<tr>
+        \\<td>col 1</td>
+        \\<td>col 2</td>
+        \\</tr>
+        \\</thead>
+        \\<tbody>
+        \\<tr>
+        \\<td>data 1</td>
+        \\<td>data 2</td>
+        \\</tr>
+        \\</tbody>
+        \\</table>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "5.6.2" {
+    const input =
+        \\| *important* | col 2 |
+        \\| ------ | ------ |
+        \\| 1 | `data here` |
+    ;
+    const output =
+        \\<table>
+        \\<thead>
+        \\<tr>
+        \\<td><em>important</em></td>
+        \\<td>col 2</td>
+        \\</tr>
+        \\</thead>
+        \\<tbody>
+        \\<tr>
+        \\<td>1</td>
+        \\<td><code>data here</code></td>
+        \\</tr>
+        \\</tbody>
+        \\</table>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
 // ## 6. Inline Content
 
 // Inline content is parsed after block structure is determined. Inline content is parsed character by character - that is, inlines do not self-close unlike blocks. It is the responsibilty of the writer to ensure that every inline content marker is properly closed. Additionally, all inlines depend on specific marker characters (`[`, `]`, `` ` ``, `*`, `\\`) that must be escaped. Non-escaped marker characters may lead to undefined behavior.

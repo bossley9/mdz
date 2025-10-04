@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const Block = enum(u3) {
+pub const Block = enum(u4) {
     // line blocks
     block_quote,
     unordered_list,
@@ -11,6 +11,7 @@ pub const Block = enum(u3) {
     code_block,
     html_block,
     footnote_reference,
+    table,
 };
 
 const InlineFlags = packed struct {
@@ -44,6 +45,10 @@ pub const BlockState = struct {
         @memset(&state.items, null);
         @memset(&state.footnotes, 0);
         return state;
+    }
+
+    pub fn resetFlags(self: *BlockState) void {
+        self.flags = InlineFlags{};
     }
 
     /// Push the provided block to the stack. The stack must have

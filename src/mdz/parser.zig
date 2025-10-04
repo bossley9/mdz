@@ -187,6 +187,7 @@ fn processHeading(level: u3, line: []u8, w: *Writer, state: *ast.BlockState) Pro
 }
 
 fn closeBlocks(w: *Writer, state: *ast.BlockState, depth: usize) Writer.Error!void {
+    state.resetFlags();
     while (state.len > depth) : ({
         state.items[state.len - 1] = null;
         state.len -= 1;
@@ -198,6 +199,7 @@ fn closeBlocks(w: *Writer, state: *ast.BlockState, depth: usize) Writer.Error!vo
         .paragraph_hidden, .html_block => {},
         .code_block => _ = try w.write("</code></pre>\n"),
         .footnote_reference => _ = try w.write("</ol>\n"),
+        .table => _ = try w.write("</tbody>\n</table>\n"),
     };
 }
 
@@ -280,6 +282,28 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                     try closeBlocks(w, state, depth);
                 }
             },
+            .table => {
+                // delimiter row
+                if (std.mem.startsWith(u8, line, "| -")) {
+                    @branchHint(.unlikely);
+                    return;
+                }
+                if (std.mem.startsWith(u8, line, "| ")) {
+                    _ = try w.write("<tr>\n");
+                    while (line.len > 1) {
+                        _ = try w.write("<td>");
+                        line = line[2..];
+                        const col_end = std.mem.indexOf(u8, line, " |").?;
+                        try processInlines(line[0..col_end], w, state);
+                        line = line[col_end + 1 ..];
+                        _ = try w.write("</td>\n");
+                    }
+                    _ = try w.write("</tr>\n");
+                    return;
+                } else {
+                    try closeBlocks(w, state, depth);
+                }
+            },
         }
     }
 
@@ -331,6 +355,19 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
         try state.push(.footnote_reference);
         _ = try w.write("<ol class=\"footnotes-list\">\n");
         return processFootnoteReference(line, w, state);
+    } else if (std.mem.startsWith(u8, line, "| ")) { // table
+        try state.push(.table);
+        _ = try w.write("<table>\n<thead>\n<tr>\n");
+        while (line.len > 1) {
+            _ = try w.write("<td>");
+            line = line[2..];
+            const col_end = std.mem.indexOf(u8, line, " |").?;
+            try processInlines(line[0..col_end], w, state);
+            line = line[col_end + 1 ..];
+            _ = try w.write("</td>\n");
+        }
+        _ = try w.write("</tr>\n</thead>\n<tbody>\n");
+        return;
     } else if (std.mem.eql(u8, line, "---")) { // thematic break
         _ = try w.write("<hr />\n");
         return;
