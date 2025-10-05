@@ -74,32 +74,65 @@ fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlines
             '*' => {
                 if (i + 1 < line.len and line[i + 1] == '*') {
                     i += 1;
-                    if (state.flags.is_strong) {
-                        _ = try w.write("</strong>");
-                    } else {
-                        _ = try w.write("<strong>");
-                    }
+                    _ = try w.write(if (state.flags.is_strong)
+                        "</strong>"
+                    else
+                        "<strong>");
                     state.flags.is_strong = !state.flags.is_strong;
                 } else {
-                    if (state.flags.is_em) {
-                        _ = try w.write("</em>");
-                    } else {
-                        _ = try w.write("<em>");
-                    }
+                    _ = try w.write(if (state.flags.is_em)
+                        "</em>"
+                    else
+                        "<em>");
                     state.flags.is_em = !state.flags.is_em;
                 }
             },
             '~' => {
                 if (std.mem.startsWith(u8, line[i..], "~~")) {
                     i += 1;
-                    if (state.flags.is_strike) {
-                        _ = try w.write("</s>");
-                    } else {
-                        _ = try w.write("<s>");
-                    }
+                    _ = try w.write(if (state.flags.is_strike)
+                        "</s>"
+                    else
+                        "<s>");
                     state.flags.is_strike = !state.flags.is_strike;
                 } else {
                     _ = try w.write("~");
+                }
+            },
+            '-' => {
+                if (std.mem.startsWith(u8, line[i..], "--")) {
+                    i += 1;
+                    _ = try w.write(if (state.flags.is_del)
+                        "</del>"
+                    else
+                        "<del>");
+                    state.flags.is_del = !state.flags.is_del;
+                } else {
+                    _ = try w.write("-");
+                }
+            },
+            '+' => {
+                if (std.mem.startsWith(u8, line[i..], "++")) {
+                    i += 1;
+                    _ = try w.write(if (state.flags.is_ins)
+                        "</ins>"
+                    else
+                        "<ins>");
+                    state.flags.is_ins = !state.flags.is_ins;
+                } else {
+                    _ = try w.write("+");
+                }
+            },
+            '=' => {
+                if (std.mem.startsWith(u8, line[i..], "==")) {
+                    i += 1;
+                    _ = try w.write(if (state.flags.is_mark)
+                        "</mark>"
+                    else
+                        "<mark>");
+                    state.flags.is_mark = !state.flags.is_mark;
+                } else {
+                    _ = try w.write("=");
                 }
             },
             '[' => {

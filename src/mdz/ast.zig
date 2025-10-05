@@ -24,6 +24,9 @@ const InlineFlags = packed struct {
     is_footnote_citation: bool = false,
     is_img: bool = false,
     is_strike: bool = false,
+    is_del: bool = false,
+    is_ins: bool = false,
+    is_mark: bool = false,
 };
 
 const max_stack_len = 16;

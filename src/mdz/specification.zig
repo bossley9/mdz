@@ -295,12 +295,12 @@ test "4.1.4" {
 test "4.1.5" {
     const input =
         \\> foo
-        \\> ---
+        \\> <del>-
     ;
     const output =
         \\<blockquote>
         \\<p>foo
-        \\---</p>
+        \\<del>-</p>
         \\</blockquote>
     ;
     try th.expectParseMDZ(input, output);
@@ -1164,7 +1164,7 @@ test "5.4.2" {
         \\--
     ;
     const output =
-        \\<p>--</p>
+        \\<p><del></p>
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1181,7 +1181,7 @@ test "5.4.3" {
     ;
     const output =
         \\<p>foo
-        \\---
+        \\<del>-
         \\bar</p>
     ;
     try th.expectParseMDZ(input, output);
@@ -1662,7 +1662,7 @@ test "6.5.4" {
 
 // ### 6.6. Strikethroughs
 
-// A Strikethrough represents a removal of outdated content that may no longer be accurate or relevant. It is started and ended with the `~~` marker.
+// A strikethrough represents a removal of outdated content that may no longer be accurate or relevant. It is started and ended with the `~~` marker.
 
 // ```zig
 test "6.6.1" {
@@ -1671,6 +1671,38 @@ test "6.6.1" {
     ;
     const output =
         \\<p>Tomorrow is <s>Tuesday</s> Wednesday.</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ### 6.7. Insertions and Deletions
+
+// Insertions and deletions can be used to indicate that some content was removed or added after creation. Insertions start and end with the `++` marker, while deletions start and end with the `--` marker.
+
+// ```zig
+test "6.7.1" {
+    const input =
+        \\--yesterday--today++tomorrow++
+    ;
+    const output =
+        \\<p><del>yesterday</del>today<ins>tomorrow</ins></p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ### 6.8. Highlighted Text
+
+// Highlighted text is highlighted in HTML and can be used to emphasize text. Highlighted text starts and end with the `== marker.
+
+// ```zig
+test "6.8.1" {
+    const input =
+        \\foo ==bar== baz
+    ;
+    const output =
+        \\<p>foo <mark>bar</mark> baz</p>
     ;
     try th.expectParseMDZ(input, output);
 }
