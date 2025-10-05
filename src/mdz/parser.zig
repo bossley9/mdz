@@ -202,9 +202,10 @@ fn processHeading(level: u3, line: []u8, w: *Writer, state: *ast.BlockState) Pro
 fn closeBlocks(w: *Writer, state: *ast.BlockState, depth: usize) Writer.Error!void {
     state.resetFlags();
     while (state.len > depth) : ({
-        state.items[state.len - 1] = null;
+        state.items[state.len - 1] = .nil;
         state.len -= 1;
-    }) switch (state.items[state.len - 1].?) {
+    }) switch (state.items[state.len - 1]) {
+        .nil => unreachable,
         .block_quote => _ = try w.write("</blockquote>\n"),
         .unordered_list => _ = try w.write("</li>\n</ul>\n"),
         .ordered_list => _ = try w.write("</li>\n</ol>\n"),
@@ -227,8 +228,8 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
     //
 
     while (depth < state.len) : (depth += 1) {
-        const block = state.items[depth].?;
-        switch (block) {
+        switch (state.items[depth]) {
+            .nil => unreachable,
             .block_quote => {
                 if (std.mem.startsWith(u8, line, "> ")) {
                     line = line[2..];
@@ -381,26 +382,23 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
         _ = try w.write("<hr />\n");
         return;
     } else if (line.len > 1 and line[0] == '<' and std.ascii.isAlphabetic(line[1])) { // HTML block
-        if (state.len > 0 and (state.items[state.len - 1] == .ordered_list or state.items[state.len - 1] == .unordered_list)) {
-            return processInlines(line, w, state);
+        switch (state.getLastBlock()) {
+            .ordered_list, .unordered_list => {},
+            else => {
+                try state.push(.html_block);
+                return processLine(line, w, state, depth);
+            },
         }
-        try state.push(.html_block);
-        return processLine(line, w, state, depth);
     } else { // paragraph
-        if (state.len == 0) {
-            try state.push(.paragraph);
-            _ = try w.write("<p>");
-        } else {
-            switch (state.items[state.len - 1].?) {
-                .unordered_list,
-                .ordered_list,
-                => try state.push(.paragraph_hidden),
-                .paragraph, .paragraph_hidden => unreachable,
-                else => {
-                    try state.push(.paragraph);
-                    _ = try w.write("<p>");
-                },
-            }
+        switch (state.getLastBlock()) {
+            .unordered_list,
+            .ordered_list,
+            => try state.push(.paragraph_hidden),
+            .paragraph, .paragraph_hidden => unreachable,
+            else => {
+                try state.push(.paragraph);
+                _ = try w.write("<p>");
+            },
         }
     }
 

@@ -1,6 +1,8 @@
 const std = @import("std");
 
 pub const Block = enum(u4) {
+    /// Used for initialization and falsy checks only
+    nil,
     // line blocks
     block_quote,
     unordered_list,
@@ -29,7 +31,7 @@ const max_stack_len = 16;
 pub const StackError = error{BlockStackOverflow};
 
 pub const BlockState = struct {
-    items: [max_stack_len]?Block,
+    items: [max_stack_len]Block,
     len: usize,
     flags: InlineFlags,
     /// stored as a dictionary where the index represents the numeric
@@ -43,9 +45,16 @@ pub const BlockState = struct {
             .flags = InlineFlags{},
             .footnotes = undefined,
         };
-        @memset(&state.items, null);
+        @memset(&state.items, .nil);
         @memset(&state.footnotes, 0);
         return state;
+    }
+
+    pub fn getLastBlock(self: *BlockState) Block {
+        return if (self.len == 0)
+            .nil
+        else
+            self.items[self.len - 1];
     }
 
     pub fn resetFlags(self: *BlockState) void {
