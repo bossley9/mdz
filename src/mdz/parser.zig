@@ -381,6 +381,9 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
         _ = try w.write("<hr />\n");
         return;
     } else if (line.len > 1 and line[0] == '<' and std.ascii.isAlphabetic(line[1])) { // HTML block
+        if (state.len > 0 and (state.items[state.len - 1] == .ordered_list or state.items[state.len - 1] == .unordered_list)) {
+            return processInlines(line, w, state);
+        }
         try state.push(.html_block);
         return processLine(line, w, state, depth);
     } else { // paragraph

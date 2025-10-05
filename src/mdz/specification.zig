@@ -633,6 +633,24 @@ test "4.2.6" {
 }
 // ```
 
+// ```zig
+test "4.2.7" {
+    const input =
+        \\* no html blocks directly in lists,
+        \\* <div>inline</div> **content**
+        \\* only
+    ;
+    const output =
+        \\<ul>
+        \\<li>no html blocks directly in lists,</li>
+        \\<li><div>inline</div> <strong>content</strong></li>
+        \\<li>only</li>
+        \\</ul>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
 // ## 5. Leaf Blocks
 
 // ### 5.1. Paragraphs
