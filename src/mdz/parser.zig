@@ -1,5 +1,6 @@
 const std = @import("std");
 const ast = @import("./ast.zig");
+const slugify = @import("./slugify.zig").slugify;
 
 const Reader = std.io.Reader;
 const Writer = std.io.Writer;
@@ -227,9 +228,21 @@ fn processFootnoteReference(line: []u8, w: *Writer, state: *ast.BlockState) Proc
 }
 
 fn processHeading(level: u3, line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlinesError!void {
-    _ = try w.print("<h{d}>", .{level});
-    try processInlines(line[level + 1 ..], w, state);
-    _ = try w.print("</h{d}>\n", .{level});
+    const content = line[level + 1 ..];
+
+    if (level == 1) {
+        @branchHint(.unlikely);
+        _ = try w.print("<h{d}>", .{level});
+        try processInlines(content, w, state);
+        _ = try w.print("</h{d}>\n", .{level});
+    } else {
+        var id_buf: [128]u8 = undefined;
+        const id_len = slugify(content, &id_buf);
+        const id = id_buf[0..id_len];
+        _ = try w.print("<h{d} id=\"{s}\"><a href=\"#{s}\">", .{ level, id, id });
+        try processInlines(content, w, state);
+        _ = try w.print("</a></h{d}>\n", .{level});
+    }
 }
 
 fn closeBlocks(w: *Writer, state: *ast.BlockState, depth: usize) Writer.Error!void {

@@ -257,14 +257,14 @@ test "4.1.2" {
 // ```zig
 test "4.1.3" {
     const input =
-        \\> # Foo
+        \\> ## Foo
         \\> 
         \\> bar
         \\> baz
     ;
     const output =
         \\<blockquote>
-        \\<h1>Foo</h1>
+        \\<h2 id="foo"><a href="#foo">Foo</a></h2>
         \\<p>bar
         \\baz</p>
         \\</blockquote>
@@ -993,11 +993,11 @@ test "5.3.1" {
     ;
     const output =
         \\<h1>foo</h1>
-        \\<h2>foo</h2>
-        \\<h3>foo</h3>
-        \\<h4>foo</h4>
-        \\<h5>foo</h5>
-        \\<h6>foo</h6>
+        \\<h2 id="foo"><a href="#foo">foo</a></h2>
+        \\<h3 id="foo"><a href="#foo">foo</a></h3>
+        \\<h4 id="foo"><a href="#foo">foo</a></h4>
+        \\<h5 id="foo"><a href="#foo">foo</a></h5>
+        \\<h6 id="foo"><a href="#foo">foo</a></h6>
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1053,10 +1053,10 @@ test "5.3.4" {
 // ```zig
 test "5.3.5" {
     const input =
-        \\# foo *bar* \*baz\*
+        \\## foo *bar* \*baz\*
     ;
     const output =
-        \\<h1>foo <em>bar</em> *baz*</h1>
+        \\<h2 id="foo-bar-baz"><a href="#foo-bar-baz">foo <em>bar</em> *baz*</a></h2>
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1097,13 +1097,13 @@ test "5.3.8" {
     const input =
         \\---
         \\
-        \\## foo
+        \\# foo
         \\
         \\---
     ;
     const output =
         \\<hr />
-        \\<h2>foo</h2>
+        \\<h1>foo</h1>
         \\<hr />
     ;
     try th.expectParseMDZ(input, output);
@@ -1137,6 +1137,23 @@ test "5.3.10" {
     const output =
         \\<h1>Hello</h1>
         \\<p>world!</p>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// Headings other than <h1>s are automatically wrapped in links with slug identifiers. However, there is no check for slug uniqueness - it is the responsibility of the user to ensure that there are no identical slug conflicts.
+
+// ```zig
+test "5.3.11" {
+    const input =
+        \\# Hello, world!
+        \\
+        \\## Hello, world!
+    ;
+    const output =
+        \\<h1>Hello, world!</h1>
+        \\<h2 id="hello-world"><a href="#hello-world">Hello, world!</a></h2>
     ;
     try th.expectParseMDZ(input, output);
 }
