@@ -1222,14 +1222,16 @@ test "5.5.2" {
 }
 // ```
 
+// In HTML blocks, leading and trailing spaces are trimmed from lines.
+
 // ```zig
 test "5.5.3" {
     const input =
         \\# foo
         \\
         \\<details>
-        \\<summary>open</summary>
-        \\secrets
+        \\  <summary>open</summary>
+        \\  secrets      
         \\</details>
         \\
         \\foo bar

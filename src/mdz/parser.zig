@@ -314,7 +314,7 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
                 if (line.len == 0) {
                     try closeBlocks(w, state, depth);
                 } else {
-                    try w.print("{s}\n", .{line});
+                    try w.print("{s}\n", .{std.mem.trim(u8, line, " ")});
                 }
                 return;
             },
