@@ -972,6 +972,23 @@ test "5.2.11" {
 }
 // ```
 
+// An info string of "plaintext" is ignored.
+
+// ```zig
+test "5.2.12" {
+    const input =
+        \\```plaintext
+        \\aaa
+        \\```
+    ;
+    const output =
+        \\<pre><code>aaa
+        \\</code></pre>
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
 // ### 5.3. Headings
 
 // Headings begin at the start of a block and consist of 1 to 6 `#` characters followed by exactly one space followed by inline content. The heading level is equal to the number of `#` characters. Headings only span a single line.

@@ -390,8 +390,9 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
     } else if (std.mem.startsWith(u8, line, "```")) { // code block
         try state.push(.code_block);
         _ = try w.write("<pre><code");
-        if (line[3..].len > 0) {
-            try w.print(" class=\"language-{s}\"", .{line[3..]});
+        const lang = line[3..];
+        if (lang.len > 0 and !std.mem.eql(u8, lang, "plaintext")) {
+            try w.print(" class=\"language-{s}\"", .{lang});
         }
         _ = try w.write(">");
         return;
