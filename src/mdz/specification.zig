@@ -81,11 +81,11 @@ const th = @import("./test_helpers.zig");
 
 // The core goals of Markdown-Z are the following:
 
-// * Reduced complexity. There should be one and only one syntax to write a each Markdown "block".
-// * Modernization. There is no need to support older syntax styles because they holds historical significance.
-// * Efficiency. Implementations should be able to parse Markdown-Z documents without backtracking and zero heaps allocations in O(n).
-// * WYSIWYG. The CommonMark spec handles whitespace delicately, omitting it in certain scenarios and creating code blocks or nested containers in others. Whitespace should be passed through as is.
-// * Close compatibility. Excluding extensions, the markup defined in this document should produce similar output to other CommonMark implementations to preserve relative backwards compatibility with existing Markdown.
+// * Simplicity. There should be one and exactly one syntax to write a "block".
+// * Modernization. There's no need to support older syntax styles because they hold historical significance.
+// * Efficiency. Implementations should be able to parse documents with no backtracking and zero heaps allocations in O(n).
+// * WYSIWYG (What You See Is What You Get). Whitespace should be passed through as is without omission.
+// * Close compatibility. Excluding extensions, the defined markup syntax should produce similar output to other CommonMark implementations to preserve relative backwards compatibility with existing Markdown.
 
 // ## 2. Preliminaries
 
