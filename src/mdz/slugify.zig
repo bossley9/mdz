@@ -20,27 +20,25 @@ pub fn slugify(x: []u8, output: []u8) usize {
     var i: usize = 0;
     var is_prev_delimiter = false;
 
-    for (x) |c| {
-        switch (c) {
-            'A'...'Z' => {
-                output[i] = std.ascii.toLower(c);
+    for (x) |c| switch (c) {
+        'A'...'Z' => {
+            output[i] = std.ascii.toLower(c);
+            i += 1;
+            is_prev_delimiter = false;
+        },
+        '0'...'9', 'a'...'z' => {
+            output[i] = c;
+            i += 1;
+            is_prev_delimiter = false;
+        },
+        else => {
+            if (i > 0 and !is_prev_delimiter) {
+                output[i] = '-';
                 i += 1;
-                is_prev_delimiter = false;
-            },
-            '0'...'9', 'a'...'z' => {
-                output[i] = c;
-                i += 1;
-                is_prev_delimiter = false;
-            },
-            else => {
-                if (i > 0 and !is_prev_delimiter) {
-                    output[i] = '-';
-                    i += 1;
-                    is_prev_delimiter = true;
-                }
-            },
-        }
-    }
+                is_prev_delimiter = true;
+            }
+        },
+    };
 
     return if (output[i - 1] == '-') i - 1 else i;
 }
