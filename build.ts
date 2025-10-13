@@ -1,21 +1,22 @@
-// binary generation
-
-await new Deno.Command("zig", { args: ["build", "wasm"] }).output();
-
-await Deno.mkdir("./dist").catch(() => {}); // ignore if already exists
-
-await Deno.copyFile("./src/lib.d.ts", "./dist/index.d.ts");
-
+const in_dir = "./src/wasm";
+const out_dir = "./dist";
 const marker = "/*generated_code_flag_marker*/";
 
-const src = await Deno.readTextFile("./src/lib.js");
+await new Deno.Command("zig", { args: ["build", "wasm"] }).output();
+await Deno.mkdir(out_dir).catch(() => {}); // ignore if already exists
+
+// binary generation
+
+await Deno.copyFile(`${in_dir}/index.d.ts`, `${out_dir}/index.d.ts`);
+
+const src = await Deno.readTextFile(`${in_dir}/index.js`);
 const wasm = await Deno.readFile("./zig-out/bin/mdz.wasm");
 
 const output = src.substring(0, src.indexOf(marker)) +
   wasm +
   src.substring(src.indexOf(marker) + marker.length);
 
-await Deno.writeTextFile("./dist/index.js", output);
+await Deno.writeTextFile(`${out_dir}/index.js`, output);
 
 // documentation generation
 

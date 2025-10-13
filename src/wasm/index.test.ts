@@ -1,5 +1,5 @@
 // this test file validates build output directly
-import { parseMDZ } from "../dist/index.js";
+import { parseMDZ } from "../../dist/index.js";
 
 async function expectParseMDZ(input: string, expected: string) {
   const received = await parseMDZ(input);
