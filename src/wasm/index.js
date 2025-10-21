@@ -1,8 +1,11 @@
 /* @ts-self-types="./index.d.ts" */
 
-const wasmMod = WebAssembly.instantiate(
-  Uint8Array.from([/*generated_code_flag_marker*/]),
-);
+const wasmStr = atob("/*generated_code_flag_marker*/");
+const wasmBuf = new Uint8Array(wasmStr.length);
+for (let i = 0; i < wasmStr.length; i++) {
+  wasmBuf[i] = wasmStr.charCodeAt(i);
+}
+const wasmMod = WebAssembly.instantiate(wasmBuf);
 
 /**
  * Given an MDZ input string, parse and return the corresponding HTML
