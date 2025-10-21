@@ -1,6 +1,8 @@
 /* @ts-self-types="./index.d.ts" */
 
-let wasmMod;
+const wasmMod = WebAssembly.instantiate(
+  Uint8Array.from([/*generated_code_flag_marker*/]),
+);
 
 /**
  * Given an MDZ input string, parse and return the corresponding HTML
@@ -9,12 +11,7 @@ let wasmMod;
  * @return {Promise<string>} output
  */
 export async function parseMDZ(input) {
-  if (!wasmMod) {
-    wasmMod = await WebAssembly.instantiate(
-      Uint8Array.from([/*generated_code_flag_marker*/]),
-    );
-  }
-  const { memory, parseMDZWasm } = wasmMod.instance.exports;
+  const { memory, parseMDZWasm } = (await wasmMod).instance.exports;
 
   const memoryArr = new Uint8Array(memory.buffer);
   const { written: inputLen } = new TextEncoder().encodeInto(input, memoryArr);
