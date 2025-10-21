@@ -26,6 +26,5 @@ export async function parseMDZ(input) {
     const index = output.lastIndexOf("error.") + 6;
     throw new Error(output.substring(index));
   }
-
   return output;
 }
