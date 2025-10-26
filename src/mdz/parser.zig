@@ -456,11 +456,12 @@ fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting
     try processInlines(line, w, state);
 }
 
-pub const ProcessDocumentError = error{ ReadFailed, StreamTooLong } || ProcessLineError;
+pub const ParseMDZError = error{ ReadFailed, StreamTooLong } || ProcessLineError;
 
-/// Read an MDZ document from an input reader and incrementally write
-/// the output to writer.
-pub fn processDocument(r: *Reader, w: *Writer) ProcessDocumentError!void {
+/// Given an MDZ input reader and an output writer, parse and write the
+/// corresponding HTML string to the writer, then return the number of
+/// bytes written.
+pub fn parseMDZ(r: *Reader, w: *Writer) ParseMDZError!usize {
     var state = ast.BlockState.init();
 
     while (takeNewlineExclusive(r)) |line| {
@@ -474,4 +475,6 @@ pub fn processDocument(r: *Reader, w: *Writer) ProcessDocumentError!void {
     try closeBlocks(w, &state, 0); // close remaining blocks
 
     if (w.end > 0) w.undo(1); // omit final newline
+    try w.flush();
+    return w.end;
 }

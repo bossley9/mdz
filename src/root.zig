@@ -4,15 +4,6 @@ const mdz = @import("./mdz/parser.zig");
 const Reader = std.io.Reader;
 const Writer = std.io.Writer;
 
-/// Given an MDZ input reader and an output writer, parse and write the
-/// corresponding HTML string to the writer, then return the number of
-/// bytes written.
-pub fn parseMDZ(r: *Reader, w: *Writer) mdz.ProcessDocumentError!usize {
-    try mdz.processDocument(r, w);
-    try w.flush();
-    return w.end;
-}
-
 /// Given an MDZ input string address, parse and write the corresponding
 /// HTML output string to memory, then return the length. An error is
 /// returned as the string "error.message", where `message` represents
@@ -29,7 +20,7 @@ export fn parseMDZWasm(input_addr: [*]u8, input_len: usize) usize {
     var output: [std.wasm.page_size]u8 = undefined;
     var writer = Writer.fixed(&output);
 
-    const len = parseMDZ(&reader, &writer) catch |err| blk: {
+    const len = mdz.parseMDZ(&reader, &writer) catch |err| blk: {
         writer.print("{any}", .{err}) catch {};
         writer.flush() catch {};
         break :blk writer.end;

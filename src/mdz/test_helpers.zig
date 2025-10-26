@@ -1,5 +1,5 @@
 const std = @import("std");
-const mod = @import("../root.zig");
+const mod = @import("../mdz/parser.zig");
 
 pub fn expectParseMDZ(input: []const u8, comptime expected: []const u8) !void {
     var reader = std.io.Reader.fixed(input);

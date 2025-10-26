@@ -1,5 +1,5 @@
 const std = @import("std");
-const mod = @import("./root.zig");
+const mdz = @import("./mdz/parser.zig");
 
 pub fn main() !void {
     var args = try std.process.argsWithAllocator(std.heap.page_allocator);
@@ -17,7 +17,7 @@ pub fn main() !void {
     var writer_buf: [std.wasm.page_size / 4]u8 = undefined;
     var stdout_writer = std.fs.File.stdout().writer(&writer_buf);
 
-    _ = try mod.parseMDZ(&file_reader.interface, &stdout_writer.interface);
+    _ = try mdz.parseMDZ(&file_reader.interface, &stdout_writer.interface);
 }
 
 comptime {
