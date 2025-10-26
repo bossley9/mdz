@@ -1,6 +1,6 @@
 const std = @import("std");
 const ast = @import("./ast.zig");
-const slugify = @import("./slugify.zig").slugify;
+const slugify = @import("../slugify/slugify.zig");
 
 const Reader = std.io.Reader;
 const Writer = std.io.Writer;
@@ -237,7 +237,7 @@ fn processHeading(level: u3, line: []u8, w: *Writer, state: *ast.BlockState) Pro
         _ = try w.print("</h{d}>\n", .{level});
     } else {
         var id_buf: [128]u8 = undefined;
-        const id_len = slugify(content, &id_buf);
+        const id_len = slugify.slugify(content, &id_buf);
         const id = id_buf[0..id_len];
         _ = try w.print("<h{d} id=\"{s}\"><a href=\"#{s}\">", .{ level, id, id });
         try processInlines(content, w, state);

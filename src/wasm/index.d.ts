@@ -5,3 +5,10 @@
  * @return {Promise<string>} output
  */
 export function parseMDZ(input: string): Promise<string>;
+
+/**
+ * Converts the input string into a slug identifier.
+ * @param {string} input
+ * @return {Promise<string>} output
+ */
+export function slugify(input: string): Promise<string>;

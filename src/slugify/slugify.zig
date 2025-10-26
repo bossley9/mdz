@@ -4,11 +4,6 @@
 //!
 //! Slugify is intended for url slugs but can be repurposed for
 //! anything.
-//!
-//! See tests below for examples.
-//!
-//! This module is directly translated from my JavaScript
-//! implementation at https://jsr.io/@bossley9/slugify.
 
 const std = @import("std");
 

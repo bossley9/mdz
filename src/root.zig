@@ -1,8 +1,23 @@
 const std = @import("std");
 const mdz = @import("./mdz/parser.zig");
+const slugify = @import("./slugify/slugify.zig");
 
 const Reader = std.io.Reader;
 const Writer = std.io.Writer;
+
+export fn slugifyWasm(input_addr: [*]u8, input_len: usize) usize {
+    const input = input_addr[0..input_len];
+    var output: [std.wasm.page_size]u8 = undefined;
+
+    const len = slugify.slugify(input, &output);
+
+    // write result to contiguous memory, overwriting input
+    var i: usize = 0;
+    while (i < len) : (i += 1) {
+        input_addr[i] = output[i];
+    }
+    return len;
+}
 
 /// Given an MDZ input string address, parse and write the corresponding
 /// HTML output string to memory, then return the length. An error is
