@@ -3,6 +3,8 @@ const mdz = @import("./mdz/parser.zig");
 
 pub fn main() !void {
     var args = try std.process.argsWithAllocator(std.heap.page_allocator);
+    defer args.deinit();
+
     _ = args.next();
     const path = args.next() orelse {
         return error.MissingFileInputArgument;
