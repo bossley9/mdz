@@ -64,4 +64,12 @@ pub fn build(b: *std.Build) !void {
     });
     const test_cmd = b.addRunArtifact(test_exe);
     test_step.dependOn(&test_cmd.step);
+
+    // check (zls build-on-save)
+    const exe_check = b.addExecutable(.{
+        .name = "mdz-check",
+        .root_module = debug_mod,
+    });
+    const check = b.step("check", "Check if mdz compiles");
+    check.dependOn(&exe_check.step);
 }
