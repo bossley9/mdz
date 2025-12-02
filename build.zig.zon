@@ -1,0 +1,12 @@
+.{
+    .name = .mdz,
+    .version = "1.2.0",
+    .fingerprint = 0xe0fb7e028338edd,
+    .minimum_zig_version = "0.15.2",
+    .paths = .{
+        "LICENSE.txt",
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
