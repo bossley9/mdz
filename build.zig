@@ -4,31 +4,39 @@ pub fn build(b: *std.Build) !void {
     const main_path = b.path("./src/main.zig");
     const mod_path = b.path("./src/root.zig");
     const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+
+    const mdz = b.addModule("mdz", .{
+        .root_source_file = mod_path,
+        .target = target,
+        .optimize = optimize,
+    });
 
     // install
-    const exe_mod = b.createModule(.{
-        .root_source_file = main_path,
-        .target = target,
-        .optimize = .ReleaseFast,
-    });
     const exe = b.addExecutable(.{
         .name = "mdz",
-        .root_module = exe_mod,
+        .root_module = b.createModule(.{
+            .root_source_file = main_path,
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "mdz", .module = mdz },
+            },
+        }),
     });
     b.installArtifact(exe);
 
     // wasm
-    const wasm_mod = b.createModule(.{
-        .root_source_file = mod_path,
-        .target = b.resolveTargetQuery(.{
-            .cpu_arch = .wasm32,
-            .os_tag = .freestanding,
-        }),
-        .optimize = .ReleaseFast,
-    });
     const wasm = b.addExecutable(.{
         .name = "mdz",
-        .root_module = wasm_mod,
+        .root_module = b.createModule(.{
+            .root_source_file = mod_path,
+            .target = b.resolveTargetQuery(.{
+                .cpu_arch = .wasm32,
+                .os_tag = .freestanding,
+            }),
+            .optimize = .ReleaseFast,
+        }),
     });
     wasm.rdynamic = true;
     wasm.entry = .disabled;
@@ -37,15 +45,17 @@ pub fn build(b: *std.Build) !void {
     wasm_step.dependOn(&wasm_exe.step);
 
     // run
-    const debug_mod = b.createModule(.{
-        .root_source_file = main_path,
-        .target = target,
-        .optimize = .Debug,
-        .valgrind = true,
-    });
     const debug_exe = b.addExecutable(.{
         .name = "mdz-debug",
-        .root_module = debug_mod,
+        .root_module = b.createModule(.{
+            .root_source_file = main_path,
+            .target = target,
+            .optimize = .Debug,
+            .valgrind = true,
+            .imports = &.{
+                .{ .name = "mdz", .module = mdz },
+            },
+        }),
     });
     const debug_exe_art = b.addInstallArtifact(debug_exe, .{});
     const run_debug_cmd = b.addRunArtifact(debug_exe);
@@ -59,17 +69,13 @@ pub fn build(b: *std.Build) !void {
     // test
     const test_step = b.step("test", "Run tests");
     const test_exe = b.addTest(.{
-        .root_module = debug_mod,
+        .root_module = mdz,
         .filters = if (b.args) |args| &.{args[0]} else &.{},
     });
     const test_cmd = b.addRunArtifact(test_exe);
     test_step.dependOn(&test_cmd.step);
 
-    // check (zls build-on-save)
-    const exe_check = b.addExecutable(.{
-        .name = "mdz-check",
-        .root_module = debug_mod,
-    });
+    // check
     const check = b.step("check", "Check if mdz compiles");
-    check.dependOn(&exe_check.step);
+    check.dependOn(&debug_exe.step);
 }

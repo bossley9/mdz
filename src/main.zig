@@ -1,5 +1,5 @@
 const std = @import("std");
-const mdz = @import("./mdz/parser.zig");
+const mdz = @import("mdz");
 
 pub fn main() !void {
     var args = try std.process.argsWithAllocator(std.heap.page_allocator);
@@ -20,11 +20,4 @@ pub fn main() !void {
     var stdout_writer = std.fs.File.stdout().writer(&writer_buf);
 
     _ = try mdz.parseMDZ(&file_reader.interface, &stdout_writer.interface);
-}
-
-comptime {
-    _ = @import("./mdz/specification.zig");
-}
-test {
-    std.testing.refAllDecls(@This());
 }

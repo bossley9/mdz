@@ -1,6 +1,9 @@
 const std = @import("std");
 const mdz = @import("./mdz/parser.zig");
-const slugify = @import("./slugify/slugify.zig");
+pub const slugify = @import("./slugify/slugify.zig").slugify;
+
+pub const parseMDZ = mdz.parseMDZ;
+pub const ParseMDZError = mdz.ParseMDZError;
 
 const Reader = std.io.Reader;
 const Writer = std.io.Writer;
@@ -9,7 +12,7 @@ export fn slugifyWasm(input_addr: [*]u8, input_len: usize) usize {
     const input = input_addr[0..input_len];
     var output: [std.wasm.page_size]u8 = undefined;
 
-    const len = slugify.slugify(input, &output);
+    const len = slugify(input, &output);
 
     // write result to contiguous memory, overwriting input
     var i: usize = 0;
@@ -47,4 +50,11 @@ export fn parseMDZWasm(input_addr: [*]u8, input_len: usize) usize {
         input_addr[i] = output[i];
     }
     return len;
+}
+
+comptime {
+    _ = @import("./mdz/specification.zig");
+}
+test {
+    std.testing.refAllDecls(@This());
 }
