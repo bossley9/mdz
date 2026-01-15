@@ -2,14 +2,13 @@ const std = @import("std");
 const ast = @import("./ast.zig");
 const slugify = @import("../slugify/slugify.zig");
 
-const Reader = std.io.Reader;
-const Writer = std.io.Writer;
+const Io = std.Io;
 
-/// Custom implementation of `std.io.Reader.takeDelimiterExclusive` to
+/// Custom implementation of `Io.Reader.takeDelimiterExclusive` to
 /// account for different line endings (LF/CRLF) and optional EOF LF.
-fn takeNewlineExclusive(r: *Reader) Reader.DelimiterError![]u8 {
+fn takeNewlineExclusive(r: *Io.Reader) Io.Reader.DelimiterError![]u8 {
     const result = r.peekDelimiterInclusive('\n') catch |err| switch (err) {
-        Reader.DelimiterError.EndOfStream, Reader.DelimiterError.StreamTooLong => {
+        Io.Reader.DelimiterError.EndOfStream, Io.Reader.DelimiterError.StreamTooLong => {
             const remaining = r.buffer[r.seek..r.end];
             if (remaining.len == 0) return error.EndOfStream;
             r.toss(remaining.len);
@@ -27,7 +26,7 @@ fn takeNewlineExclusive(r: *Reader) Reader.DelimiterError![]u8 {
     return result[0 .. result.len - 1];
 }
 
-fn printEscapedHtml(c: u8, w: *Writer) Writer.Error!void {
+fn printEscapedHtml(c: u8, w: *Io.Writer) Io.Writer.Error!void {
     switch (c) {
         '>' => _ = try w.write("&gt;"),
         '<' => _ = try w.write("&lt;"),
@@ -36,9 +35,9 @@ fn printEscapedHtml(c: u8, w: *Writer) Writer.Error!void {
     }
 }
 
-const ProcessInlinesError = Writer.Error || std.fmt.ParseIntError;
+const ProcessInlinesError = Io.Writer.Error || std.fmt.ParseIntError;
 
-fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlinesError!void {
+fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInlinesError!void {
     var ref_index: ?usize = null;
     var i: usize = 0;
     while (i < line.len) : (i += 1) {
@@ -209,7 +208,7 @@ fn processInlines(line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlines
     }
 }
 
-fn processFootnoteReference(line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlinesError!void {
+fn processFootnoteReference(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInlinesError!void {
     std.debug.assert(std.mem.eql(u8, line[0..2], "[^"));
     var i: usize = 2;
     while (i < line.len and line[i] != ']') : (i += 1) {}
@@ -227,7 +226,7 @@ fn processFootnoteReference(line: []u8, w: *Writer, state: *ast.BlockState) Proc
     _ = try w.write("</p></li>\n");
 }
 
-fn processHeading(level: u3, line: []u8, w: *Writer, state: *ast.BlockState) ProcessInlinesError!void {
+fn processHeading(level: u3, line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInlinesError!void {
     const content = line[level + 1 ..];
 
     if (level == 1) {
@@ -245,7 +244,7 @@ fn processHeading(level: u3, line: []u8, w: *Writer, state: *ast.BlockState) Pro
     }
 }
 
-fn closeBlocks(w: *Writer, state: *ast.BlockState, depth: usize) Writer.Error!void {
+fn closeBlocks(w: *Io.Writer, state: *ast.BlockState, depth: usize) Io.Writer.Error!void {
     state.resetFlags();
     while (state.len > depth) : ({
         state.items[state.len - 1] = .nil;
@@ -263,9 +262,9 @@ fn closeBlocks(w: *Writer, state: *ast.BlockState, depth: usize) Writer.Error!vo
     };
 }
 
-const ProcessLineError = Writer.Error || ast.StackError || std.fmt.ParseIntError;
+const ProcessLineError = Io.Writer.Error || ast.StackError || std.fmt.ParseIntError;
 
-fn processLine(starting_line: []u8, w: *Writer, state: *ast.BlockState, starting_depth: usize) ProcessLineError!void {
+fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, starting_depth: usize) ProcessLineError!void {
     var depth = starting_depth;
     var line = starting_line;
 
@@ -461,15 +460,15 @@ pub const ParseMDZError = error{ ReadFailed, StreamTooLong } || ProcessLineError
 /// Given an MDZ input reader and an output writer, parse and write the
 /// corresponding HTML string to the writer, then return the number of
 /// bytes written.
-pub fn parseMDZ(r: *Reader, w: *Writer) ParseMDZError!usize {
+pub fn parseMDZ(r: *Io.Reader, w: *Io.Writer) ParseMDZError!usize {
     var state = ast.BlockState.init();
 
     while (takeNewlineExclusive(r)) |line| {
         try processLine(line, w, &state, 0);
     } else |e| switch (e) {
-        Reader.DelimiterError.EndOfStream => {}, // end of input
-        Reader.DelimiterError.ReadFailed,
-        Reader.DelimiterError.StreamTooLong,
+        Io.Reader.DelimiterError.EndOfStream => {}, // end of input
+        Io.Reader.DelimiterError.ReadFailed,
+        Io.Reader.DelimiterError.StreamTooLong,
         => |err| return err,
     }
     try closeBlocks(w, &state, 0); // close remaining blocks

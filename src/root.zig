@@ -5,8 +5,7 @@ pub const slugify = @import("./slugify/slugify.zig").slugify;
 pub const parseMDZ = mdz.parseMDZ;
 pub const ParseMDZError = mdz.ParseMDZError;
 
-const Reader = std.io.Reader;
-const Writer = std.io.Writer;
+const Io = std.Io;
 
 export fn slugifyWasm(input_addr: [*]u8, input_len: usize) usize {
     const input = input_addr[0..input_len];
@@ -33,10 +32,10 @@ export fn parseMDZWasm(input_addr: [*]u8, input_len: usize) usize {
     }
 
     const input = input_addr[0..input_len];
-    var reader = Reader.fixed(input);
+    var reader = Io.Reader.fixed(input);
 
     var output: [std.wasm.page_size]u8 = undefined;
-    var writer = Writer.fixed(&output);
+    var writer = Io.Writer.fixed(&output);
 
     const len = mdz.parseMDZ(&reader, &writer) catch |err| blk: {
         writer.print("{any}", .{err}) catch {};
