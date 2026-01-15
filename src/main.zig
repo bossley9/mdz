@@ -26,5 +26,6 @@ pub fn main() !void {
     var writer_buf: [std.wasm.page_size / 4]u8 = undefined;
     var stdout_writer = Io.File.stdout().writer(io, &writer_buf);
 
-    _ = try mdz.parseMDZ(&file_reader.interface, &stdout_writer.interface);
+    const len = try mdz.parseMDZ(&file_reader.interface, &stdout_writer.interface);
+    std.log.debug("{d} bytes written to stdout.", .{len});
 }

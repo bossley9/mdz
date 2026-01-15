@@ -26,18 +26,19 @@ fn takeNewlineExclusive(r: *Io.Reader) Io.Reader.DelimiterError![]u8 {
     return result[0 .. result.len - 1];
 }
 
-fn printEscapedHtml(c: u8, w: *Io.Writer) Io.Writer.Error!void {
-    switch (c) {
-        '>' => _ = try w.write("&gt;"),
-        '<' => _ = try w.write("&lt;"),
-        '&' => _ = try w.write("&amp;"),
-        else => try w.printAsciiChar(c, .{}),
-    }
+fn printEscapedHtml(c: u8, w: *Io.Writer) Io.Writer.Error!usize {
+    return switch (c) {
+        '>' => w.write("&gt;"),
+        '<' => w.write("&lt;"),
+        '&' => w.write("&amp;"),
+        else => w.write(&.{c}),
+    };
 }
 
-const ProcessInlinesError = Io.Writer.Error || std.fmt.ParseIntError;
+const ProcessInlinesError = Io.Writer.Error || std.fmt.ParseIntError || std.fmt.BufPrintError;
 
-fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInlinesError!void {
+fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInlinesError!usize {
+    var len: usize = 0;
     var ref_index: ?usize = null;
     var i: usize = 0;
     while (i < line.len) : (i += 1) {
@@ -48,39 +49,39 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
                     i += 1;
                     if (i < line.len) {
                         @branchHint(.likely);
-                        try printEscapedHtml(line[i], w);
+                        len += try printEscapedHtml(line[i], w);
                     }
                 },
                 '`' => {
-                    _ = try w.write("</code>");
+                    len += try w.write("</code>");
                     state.flags.is_code = false;
                 },
-                else => try printEscapedHtml(line[i], w),
+                else => len += try printEscapedHtml(line[i], w),
             }
             continue;
         }
         switch (line[i]) {
             '`' => {
-                _ = try w.write("<code>");
+                len += try w.write("<code>");
                 state.flags.is_code = true;
             },
             '"' => {
                 if (state.flags.is_img) {
-                    _ = try w.write("&quot;");
+                    len += try w.write("&quot;");
                 } else {
-                    _ = try w.write("\"");
+                    len += try w.write("\"");
                 }
             },
             '*' => {
                 if (i + 1 < line.len and line[i + 1] == '*') {
                     i += 1;
-                    _ = try w.write(if (state.flags.is_strong)
+                    len += try w.write(if (state.flags.is_strong)
                         "</strong>"
                     else
                         "<strong>");
                     state.flags.is_strong = !state.flags.is_strong;
                 } else {
-                    _ = try w.write(if (state.flags.is_em)
+                    len += try w.write(if (state.flags.is_em)
                         "</em>"
                     else
                         "<em>");
@@ -90,49 +91,49 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
             '~' => {
                 if (std.mem.startsWith(u8, line[i..], "~~")) {
                     i += 1;
-                    _ = try w.write(if (state.flags.is_strike)
+                    len += try w.write(if (state.flags.is_strike)
                         "</s>"
                     else
                         "<s>");
                     state.flags.is_strike = !state.flags.is_strike;
                 } else {
-                    _ = try w.write("~");
+                    len += try w.write("~");
                 }
             },
             '-' => {
                 if (std.mem.startsWith(u8, line[i..], "--")) {
                     i += 1;
-                    _ = try w.write(if (state.flags.is_del)
+                    len += try w.write(if (state.flags.is_del)
                         "</del>"
                     else
                         "<del>");
                     state.flags.is_del = !state.flags.is_del;
                 } else {
-                    _ = try w.write("-");
+                    len += try w.write("-");
                 }
             },
             '+' => {
                 if (std.mem.startsWith(u8, line[i..], "++")) {
                     i += 1;
-                    _ = try w.write(if (state.flags.is_ins)
+                    len += try w.write(if (state.flags.is_ins)
                         "</ins>"
                     else
                         "<ins>");
                     state.flags.is_ins = !state.flags.is_ins;
                 } else {
-                    _ = try w.write("+");
+                    len += try w.write("+");
                 }
             },
             '=' => {
                 if (std.mem.startsWith(u8, line[i..], "==")) {
                     i += 1;
-                    _ = try w.write(if (state.flags.is_mark)
+                    len += try w.write(if (state.flags.is_mark)
                         "</mark>"
                     else
                         "<mark>");
                     state.flags.is_mark = !state.flags.is_mark;
                 } else {
-                    _ = try w.write("=");
+                    len += try w.write("=");
                 }
             },
             '[' => {
@@ -140,11 +141,11 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
                     i += 1;
                     ref_index = i + 1;
                     state.flags.is_footnote_citation = true;
-                    _ = try w.write("<sup class=\"footnote-ref\"><a href=\"#fn");
+                    len += try w.write("<sup class=\"footnote-ref\"><a href=\"#fn");
                 } else {
                     state.flags.is_link = true;
                     ref_index = i;
-                    _ = try w.write("<a href=\"");
+                    len += try w.write("<a href=\"");
                     i = i + std.mem.indexOf(u8, line[i..], "](").? + 1;
                 }
             },
@@ -153,17 +154,17 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
                     const new_ref_index = i;
                     i = ref_index.?;
                     ref_index = new_ref_index;
-                    _ = try w.write("\">");
+                    len += try w.write("\">");
                 } else if (state.flags.is_img) {
-                    _ = try w.write("\" />");
+                    len += try w.write("\" />");
                     state.flags.is_img = false;
                 } else {
-                    _ = try w.write(")");
+                    len += try w.write(")");
                 }
             },
             ']' => {
                 if (state.flags.is_link) {
-                    _ = try w.write("</a>");
+                    len += try w.write("</a>");
                     i = ref_index.?;
                     state.flags.is_link = false;
                     ref_index = null;
@@ -171,10 +172,17 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
                     const fn_key = try std.fmt.parseInt(u8, line[ref_index.?..i], 10);
                     const fn_num = state.footnotes[fn_key];
 
+                    var buf: [48]u8 = undefined;
                     if (fn_num > 0) {
-                        try w.print("\" id=\"fnref{d}:{d}\">[{d}:{d}]</a></sup>", .{ fn_key, fn_num, fn_key, fn_num });
+                        const fmt = try std.fmt.bufPrint(
+                            &buf,
+                            "\" id=\"fnref{d}:{d}\">[{d}:{d}]</a></sup>",
+                            .{ fn_key, fn_num, fn_key, fn_num },
+                        );
+                        len += try w.write(fmt);
                     } else {
-                        try w.print("\" id=\"fnref{d}\">[{d}]</a></sup>", .{ fn_key, fn_key });
+                        const fmt = try std.fmt.bufPrint(&buf, "\" id=\"fnref{d}\">[{d}]</a></sup>", .{ fn_key, fn_key });
+                        len += try w.write(fmt);
                     }
                     state.footnotes[fn_key] += 1;
                     state.flags.is_footnote_citation = false;
@@ -182,91 +190,108 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
                 } else if (state.flags.is_img) {
                     std.debug.assert(line[i + 1] == '(');
                     i += 1;
-                    _ = try w.write("\" src=\"");
+                    len += try w.write("\" src=\"");
                 } else {
-                    _ = try w.write("]");
+                    len += try w.write("]");
                 }
             },
             '!' => {
                 if (i + 1 < line.len and line[i + 1] == '[') {
                     state.flags.is_img = true;
                     i += 1;
-                    _ = try w.write("<img alt=\"");
+                    len += try w.write("<img alt=\"");
                 } else {
-                    _ = try w.write("!");
+                    len += try w.write("!");
                 }
             },
             '\\' => {
                 i += 1;
                 if (i < line.len) {
                     @branchHint(.likely);
-                    try printEscapedHtml(line[i], w);
+                    len += try printEscapedHtml(line[i], w);
                 }
             },
-            else => try w.printAsciiChar(line[i], .{}),
+            else => len += try w.write(&.{line[i]}),
         }
     }
+    return len;
 }
 
-fn processFootnoteReference(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInlinesError!void {
+fn processFootnoteReference(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInlinesError!usize {
     std.debug.assert(std.mem.eql(u8, line[0..2], "[^"));
+    var len: usize = 0;
     var i: usize = 2;
     while (i < line.len and line[i] != ']') : (i += 1) {}
     const fn_key = try std.fmt.parseInt(u8, line[2..i], 10);
-    try w.print("<li id=\"fn{d}\" class=\"footnote-item\"><p>", .{fn_key});
-    try processInlines(line[i + 3 ..], w, state);
+    var buf: [64]u8 = undefined;
+    const fmt = try std.fmt.bufPrint(&buf, "<li id=\"fn{d}\" class=\"footnote-item\"><p>", .{fn_key});
+    len += try w.write(fmt);
+    len += try processInlines(line[i + 3 ..], w, state);
     var j: usize = 0;
     while (j < state.footnotes[fn_key]) : (j += 1) {
-        try w.print(" <a href=\"#fnref{d}", .{fn_key});
+        const inner_fmt = try std.fmt.bufPrint(&buf, " <a href=\"#fnref{d}", .{fn_key});
+        len += try w.write(inner_fmt);
         if (j > 0) {
-            try w.print(":{d}", .{j});
+            const num_fmt = try std.fmt.bufPrint(&buf, ":{d}", .{j});
+            len += try w.write(num_fmt);
         }
-        _ = try w.write("\" class=\"footnote-backref\">↩︎</a>");
+        len += try w.write("\" class=\"footnote-backref\">↩︎</a>");
     }
-    _ = try w.write("</p></li>\n");
+    len += try w.write("</p></li>\n");
+    return len;
 }
 
-fn processHeading(level: u3, line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInlinesError!void {
+fn processHeading(level: u3, line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInlinesError!usize {
+    var len: usize = 0;
     const content = line[level + 1 ..];
+    var buf: [256]u8 = undefined;
 
     if (level == 1) {
         @branchHint(.unlikely);
-        _ = try w.print("<h{d}>", .{level});
-        try processInlines(content, w, state);
-        _ = try w.print("</h{d}>\n", .{level});
+        const start_fmt = try std.fmt.bufPrint(&buf, "<h{d}>", .{level});
+        len += try w.write(start_fmt);
+        len += try processInlines(content, w, state);
+        const end_fmt = try std.fmt.bufPrint(&buf, "</h{d}>\n", .{level});
+        len += try w.write(end_fmt);
     } else {
         var id_buf: [128]u8 = undefined;
         const id_len = slugify.slugify(content, &id_buf);
         const id = id_buf[0..id_len];
-        _ = try w.print("<h{d} id=\"{s}\"><a href=\"#{s}\">", .{ level, id, id });
-        try processInlines(content, w, state);
-        _ = try w.print("</a></h{d}>\n", .{level});
+        const start_fmt = try std.fmt.bufPrint(&buf, "<h{d} id=\"{s}\"><a href=\"#{s}\">", .{ level, id, id });
+        len += try w.write(start_fmt);
+        len += try processInlines(content, w, state);
+        const end_fmt = try std.fmt.bufPrint(&buf, "</a></h{d}>\n", .{level});
+        len += try w.write(end_fmt);
     }
+    return len;
 }
 
-fn closeBlocks(w: *Io.Writer, state: *ast.BlockState, depth: usize) Io.Writer.Error!void {
+fn closeBlocks(w: *Io.Writer, state: *ast.BlockState, depth: usize) Io.Writer.Error!usize {
+    var len: usize = 0;
     state.resetFlags();
     while (state.len > depth) : ({
         state.items[state.len - 1] = .nil;
         state.len -= 1;
     }) switch (state.items[state.len - 1]) {
         .nil => unreachable,
-        .block_quote => _ = try w.write("</blockquote>\n"),
-        .unordered_list => _ = try w.write("</li>\n</ul>\n"),
-        .ordered_list => _ = try w.write("</li>\n</ol>\n"),
-        .paragraph => _ = try w.write("</p>\n"),
+        .block_quote => len += try w.write("</blockquote>\n"),
+        .unordered_list => len += try w.write("</li>\n</ul>\n"),
+        .ordered_list => len += try w.write("</li>\n</ol>\n"),
+        .paragraph => len += try w.write("</p>\n"),
         .paragraph_hidden, .html_block => {},
-        .code_block => _ = try w.write("</code></pre>\n"),
-        .footnote_reference => _ = try w.write("</ol>\n</section>\n"),
-        .table => _ = try w.write("</tbody>\n</table>\n"),
+        .code_block => len += try w.write("</code></pre>\n"),
+        .footnote_reference => len += try w.write("</ol>\n</section>\n"),
+        .table => len += try w.write("</tbody>\n</table>\n"),
     };
+    return len;
 }
 
-const ProcessLineError = Io.Writer.Error || ast.StackError || std.fmt.ParseIntError;
+const ProcessLineError = Io.Writer.Error || ast.StackError || ProcessInlinesError;
 
-fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, starting_depth: usize) ProcessLineError!void {
+fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, starting_depth: usize) ProcessLineError!usize {
     var depth = starting_depth;
     var line = starting_line;
+    var len: usize = 0;
 
     //
     // validate existing blocks
@@ -279,84 +304,84 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
                 if (std.mem.startsWith(u8, line, "> ")) {
                     line = line[2..];
                 } else {
-                    try closeBlocks(w, state, depth);
+                    len += try closeBlocks(w, state, depth);
                 }
             },
             .unordered_list => {
                 if (std.mem.startsWith(u8, line, "  ")) {
                     line = line[2..];
                 } else if (std.mem.startsWith(u8, line, "* ")) {
-                    try closeBlocks(w, state, depth + 1);
-                    _ = try w.write("</li>\n<li>");
+                    len += try closeBlocks(w, state, depth + 1);
+                    len += try w.write("</li>\n<li>");
                     line = line[2..];
                 } else {
-                    try closeBlocks(w, state, depth);
+                    len += try closeBlocks(w, state, depth);
                 }
             },
             .ordered_list => {
                 if (std.mem.startsWith(u8, line, "   ")) {
                     line = line[3..];
                 } else if (std.mem.startsWith(u8, line, "1. ")) {
-                    try closeBlocks(w, state, depth + 1);
-                    _ = try w.write("</li>\n<li>");
+                    len += try closeBlocks(w, state, depth + 1);
+                    len += try w.write("</li>\n<li>");
                     line = line[3..];
                 } else {
-                    try closeBlocks(w, state, depth);
+                    len += try closeBlocks(w, state, depth);
                 }
             },
             .paragraph, .paragraph_hidden => {
                 if (line.len == 0) {
-                    try closeBlocks(w, state, depth);
+                    len += try closeBlocks(w, state, depth);
                 } else {
-                    _ = try w.write("\n"); // lazy continuation
-                    try processInlines(line, w, state);
+                    len += try w.write("\n"); // lazy continuation
+                    len += try processInlines(line, w, state);
                 }
-                return;
+                return len;
             },
             .code_block => {
                 if (std.mem.startsWith(u8, line, "```")) {
-                    try closeBlocks(w, state, depth);
+                    len += try closeBlocks(w, state, depth);
                 } else {
-                    for (line) |c| try printEscapedHtml(c, w);
-                    _ = try w.write("\n");
+                    for (line) |c| len += try printEscapedHtml(c, w);
+                    len += try w.write("\n");
                 }
-                return;
+                return len;
             },
             .html_block => {
                 if (line.len == 0) {
-                    try closeBlocks(w, state, depth);
+                    len += try closeBlocks(w, state, depth);
                 } else {
-                    try w.print("{s}\n", .{std.mem.trim(u8, line, " ")});
+                    len += try w.write(std.mem.trim(u8, line, " "));
+                    len += try w.write("\n");
                 }
-                return;
+                return len;
             },
             .footnote_reference => {
                 if (std.mem.startsWith(u8, line, "[^")) {
-                    return processFootnoteReference(line, w, state);
+                    return len + try processFootnoteReference(line, w, state);
                 } else {
-                    try closeBlocks(w, state, depth);
+                    len += try closeBlocks(w, state, depth);
                 }
             },
             .table => {
                 // delimiter row
                 if (std.mem.startsWith(u8, line, "| -")) {
                     @branchHint(.unlikely);
-                    return;
+                    return len;
                 }
                 if (std.mem.startsWith(u8, line, "| ")) {
-                    _ = try w.write("<tr>\n");
+                    len += try w.write("<tr>\n");
                     while (line.len > 1) {
-                        _ = try w.write("<td>");
+                        len += try w.write("<td>");
                         line = line[2..];
                         const col_end = std.mem.indexOf(u8, line, " |").?;
-                        try processInlines(line[0..col_end], w, state);
+                        len += try processInlines(line[0..col_end], w, state);
                         line = line[col_end + 1 ..];
-                        _ = try w.write("</td>\n");
+                        len += try w.write("</td>\n");
                     }
-                    _ = try w.write("</tr>\n");
-                    return;
+                    return len + try w.write("</tr>\n");
                 } else {
-                    try closeBlocks(w, state, depth);
+                    len += try closeBlocks(w, state, depth);
                 }
             },
         }
@@ -367,7 +392,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
     //
 
     if (line.len == 0) {
-        return closeBlocks(w, state, depth);
+        return len + try closeBlocks(w, state, depth);
     }
 
     //
@@ -376,63 +401,62 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
 
     if (std.mem.startsWith(u8, line, "> ")) { // block quote
         try state.push(.block_quote);
-        _ = try w.write("<blockquote>\n");
-        return processLine(line[2..], w, state, depth + 1);
+        len += try w.write("<blockquote>\n");
+        return len + try processLine(line[2..], w, state, depth + 1);
     } else if (std.mem.startsWith(u8, line, "* ")) { // unordered list
         try state.push(.unordered_list);
-        _ = try w.write("<ul>\n<li>");
-        return processLine(line[2..], w, state, depth + 1);
+        len += try w.write("<ul>\n<li>");
+        return len + try processLine(line[2..], w, state, depth + 1);
     } else if (std.mem.startsWith(u8, line, "1. ")) { // ordered list
         try state.push(.ordered_list);
-        _ = try w.write("<ol>\n<li>");
-        return processLine(line[3..], w, state, depth + 1);
+        len += try w.write("<ol>\n<li>");
+        return len + try processLine(line[3..], w, state, depth + 1);
     } else if (std.mem.startsWith(u8, line, "```")) { // code block
         try state.push(.code_block);
-        _ = try w.write("<pre><code");
+        len += try w.write("<pre><code");
         const lang = line[3..];
         if (lang.len > 0 and !std.mem.eql(u8, lang, "plaintext")) {
-            try w.print(" class=\"language-{s}\"", .{lang});
+            var buf: [64]u8 = undefined;
+            const fmt = try std.fmt.bufPrint(&buf, " class=\"language-{s}\"", .{lang});
+            len += try w.write(fmt);
         }
-        _ = try w.write(">");
-        return;
+        return len + try w.write(">");
     } else if (std.mem.startsWith(u8, line, "###### ")) { // heading 6
-        return processHeading(6, line, w, state);
+        return len + try processHeading(6, line, w, state);
     } else if (std.mem.startsWith(u8, line, "##### ")) { // heading 5
-        return processHeading(5, line, w, state);
+        return len + try processHeading(5, line, w, state);
     } else if (std.mem.startsWith(u8, line, "#### ")) { // heading 4
-        return processHeading(4, line, w, state);
+        return len + try processHeading(4, line, w, state);
     } else if (std.mem.startsWith(u8, line, "### ")) { // heading 3
-        return processHeading(3, line, w, state);
+        return len + try processHeading(3, line, w, state);
     } else if (std.mem.startsWith(u8, line, "## ")) { // heading 2
-        return processHeading(2, line, w, state);
+        return len + try processHeading(2, line, w, state);
     } else if (std.mem.startsWith(u8, line, "# ")) { // heading 1
-        return processHeading(1, line, w, state);
+        return len + try processHeading(1, line, w, state);
     } else if (std.mem.startsWith(u8, line, "[^")) { // footnote reference
         try state.push(.footnote_reference);
-        _ = try w.write("<section class=\"footnotes\">\n<ol class=\"footnotes-list\">\n");
-        return processFootnoteReference(line, w, state);
+        len += try w.write("<section class=\"footnotes\">\n<ol class=\"footnotes-list\">\n");
+        return len + try processFootnoteReference(line, w, state);
     } else if (std.mem.startsWith(u8, line, "| ")) { // table
         try state.push(.table);
-        _ = try w.write("<table>\n<thead>\n<tr>\n");
+        len += try w.write("<table>\n<thead>\n<tr>\n");
         while (line.len > 1) {
-            _ = try w.write("<th>");
+            len += try w.write("<th>");
             line = line[2..];
             const col_end = std.mem.indexOf(u8, line, " |").?;
-            try processInlines(line[0..col_end], w, state);
+            len += try processInlines(line[0..col_end], w, state);
             line = line[col_end + 1 ..];
-            _ = try w.write("</th>\n");
+            len += try w.write("</th>\n");
         }
-        _ = try w.write("</tr>\n</thead>\n<tbody>\n");
-        return;
+        return len + try w.write("</tr>\n</thead>\n<tbody>\n");
     } else if (std.mem.eql(u8, line, "---")) { // thematic break
-        _ = try w.write("<hr />\n");
-        return;
+        return len + try w.write("<hr />\n");
     } else if (line.len > 1 and line[0] == '<' and std.ascii.isAlphabetic(line[1])) { // HTML block
         switch (state.getLastBlock()) {
             .ordered_list, .unordered_list => {},
             else => {
                 try state.push(.html_block);
-                return processLine(line, w, state, depth);
+                return len + try processLine(line, w, state, depth);
             },
         }
     } else { // paragraph
@@ -443,7 +467,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
             .paragraph, .paragraph_hidden => unreachable,
             else => {
                 try state.push(.paragraph);
-                _ = try w.write("<p>");
+                len += try w.write("<p>");
             },
         }
     }
@@ -452,7 +476,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
     // process leaf blocks
     //
 
-    try processInlines(line, w, state);
+    return len + try processInlines(line, w, state);
 }
 
 pub const ParseMDZError = error{ ReadFailed, StreamTooLong } || ProcessLineError;
@@ -462,18 +486,23 @@ pub const ParseMDZError = error{ ReadFailed, StreamTooLong } || ProcessLineError
 /// bytes written.
 pub fn parseMDZ(r: *Io.Reader, w: *Io.Writer) ParseMDZError!usize {
     var state = ast.BlockState.init();
+    var len: usize = 0;
 
     while (takeNewlineExclusive(r)) |line| {
-        try processLine(line, w, &state, 0);
+        len += try processLine(line, w, &state, 0);
     } else |e| switch (e) {
         Io.Reader.DelimiterError.EndOfStream => {}, // end of input
         Io.Reader.DelimiterError.ReadFailed,
         Io.Reader.DelimiterError.StreamTooLong,
         => |err| return err,
     }
-    try closeBlocks(w, &state, 0); // close remaining blocks
+    len += try closeBlocks(w, &state, 0); // close remaining blocks
 
-    if (w.end > 0) w.undo(1); // omit final newline
+    // omit final newline
+    if (len > 0) {
+        w.undo(1);
+        len -= 1;
+    }
     try w.flush();
-    return w.end;
+    return len;
 }
