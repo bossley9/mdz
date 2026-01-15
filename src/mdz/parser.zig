@@ -4,6 +4,8 @@ const slugify = @import("../slugify/slugify.zig");
 
 const Io = std.Io;
 
+const GenericMDZError = error{ InvalidMDZSyntax, UnreachableMDZCode };
+
 /// Custom implementation of `Io.Reader.takeDelimiterExclusive` to
 /// account for different line endings (LF/CRLF) and optional EOF LF.
 fn takeNewlineExclusive(r: *Io.Reader) Io.Reader.DelimiterError![]u8 {
@@ -35,7 +37,7 @@ fn printEscapedHtml(c: u8, w: *Io.Writer) Io.Writer.Error!usize {
     };
 }
 
-const ProcessInlinesError = Io.Writer.Error || std.fmt.ParseIntError || std.fmt.BufPrintError;
+const ProcessInlinesError = Io.Writer.Error || std.fmt.ParseIntError || std.fmt.BufPrintError || GenericMDZError;
 
 fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInlinesError!usize {
     var len: usize = 0;
@@ -146,13 +148,13 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
                     state.flags.is_link = true;
                     ref_index = i;
                     len += try w.write("<a href=\"");
-                    i = i + std.mem.indexOf(u8, line[i..], "](").? + 1;
+                    i = i + (std.mem.indexOf(u8, line[i..], "](") orelse return error.InvalidMDZSyntax) + 1;
                 }
             },
             ')' => {
                 if (state.flags.is_link) {
                     const new_ref_index = i;
-                    i = ref_index.?;
+                    i = ref_index orelse return error.InvalidMDZSyntax;
                     ref_index = new_ref_index;
                     len += try w.write("\">");
                 } else if (state.flags.is_img) {
@@ -165,11 +167,11 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
             ']' => {
                 if (state.flags.is_link) {
                     len += try w.write("</a>");
-                    i = ref_index.?;
+                    i = ref_index orelse return error.InvalidMDZSyntax;
                     state.flags.is_link = false;
                     ref_index = null;
                 } else if (state.flags.is_footnote_citation) {
-                    const fn_key = try std.fmt.parseInt(u8, line[ref_index.?..i], 10);
+                    const fn_key = try std.fmt.parseInt(u8, line[(ref_index orelse return error.InvalidMDZSyntax)..i], 10);
                     const fn_num = state.footnotes[fn_key];
 
                     var buf: [48]u8 = undefined;
@@ -266,14 +268,15 @@ fn processHeading(level: u3, line: []u8, w: *Io.Writer, state: *ast.BlockState) 
     return len;
 }
 
-fn closeBlocks(w: *Io.Writer, state: *ast.BlockState, depth: usize) Io.Writer.Error!usize {
+const CloseBlocksError = Io.Writer.Error || GenericMDZError;
+fn closeBlocks(w: *Io.Writer, state: *ast.BlockState, depth: usize) CloseBlocksError!usize {
     var len: usize = 0;
     state.resetFlags();
     while (state.len > depth) : ({
         state.items[state.len - 1] = .nil;
         state.len -= 1;
     }) switch (state.items[state.len - 1]) {
-        .nil => unreachable,
+        .nil => return GenericMDZError.UnreachableMDZCode,
         .block_quote => len += try w.write("</blockquote>\n"),
         .unordered_list => len += try w.write("</li>\n</ul>\n"),
         .ordered_list => len += try w.write("</li>\n</ol>\n"),
@@ -286,7 +289,7 @@ fn closeBlocks(w: *Io.Writer, state: *ast.BlockState, depth: usize) Io.Writer.Er
     return len;
 }
 
-const ProcessLineError = Io.Writer.Error || ast.StackError || ProcessInlinesError;
+const ProcessLineError = Io.Writer.Error || ast.StackError || ProcessInlinesError || GenericMDZError;
 
 fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, starting_depth: usize) ProcessLineError!usize {
     var depth = starting_depth;
@@ -299,7 +302,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
 
     while (depth < state.len) : (depth += 1) {
         switch (state.items[depth]) {
-            .nil => unreachable,
+            .nil => return GenericMDZError.UnreachableMDZCode,
             .block_quote => {
                 if (std.mem.startsWith(u8, line, "> ")) {
                     line = line[2..];
@@ -374,7 +377,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
                     while (line.len > 1) {
                         len += try w.write("<td>");
                         line = line[2..];
-                        const col_end = std.mem.indexOf(u8, line, " |").?;
+                        const col_end = std.mem.indexOf(u8, line, " |") orelse return error.InvalidMDZSyntax;
                         len += try processInlines(line[0..col_end], w, state);
                         line = line[col_end + 1 ..];
                         len += try w.write("</td>\n");
@@ -443,7 +446,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
         while (line.len > 1) {
             len += try w.write("<th>");
             line = line[2..];
-            const col_end = std.mem.indexOf(u8, line, " |").?;
+            const col_end = std.mem.indexOf(u8, line, " |") orelse return error.InvalidMDZSyntax;
             len += try processInlines(line[0..col_end], w, state);
             line = line[col_end + 1 ..];
             len += try w.write("</th>\n");
@@ -464,7 +467,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
             .unordered_list,
             .ordered_list,
             => try state.push(.paragraph_hidden),
-            .paragraph, .paragraph_hidden => unreachable,
+            .paragraph, .paragraph_hidden => return GenericMDZError.UnreachableMDZCode,
             else => {
                 try state.push(.paragraph);
                 len += try w.write("<p>");
