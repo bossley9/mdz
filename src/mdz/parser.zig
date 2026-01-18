@@ -501,11 +501,23 @@ pub fn parseMDZ(r: *Io.Reader, w: *Io.Writer) ParseMDZError!usize {
     }
     len += try closeBlocks(w, &state, 0); // close remaining blocks
 
-    // omit final newline
-    if (len > 0) {
-        w.undo(1);
-        len -= 1;
-    }
     try w.flush();
     return len;
+}
+
+fn fakeDrain(w: *Io.Writer, _: []const []const u8, _: usize) Io.Writer.Error!usize {
+    w.end = 0;
+    return 0;
+}
+
+test "does not attempt to undo buffer write when empty" {
+    const expected = "<p>Hello</p>";
+    var r = Io.Reader.fixed("Hello");
+    var buf: [expected.len]u8 = undefined;
+    var w: Io.Writer = .{
+        .vtable = &.{ .drain = fakeDrain },
+        .buffer = &buf,
+    };
+    _ = try parseMDZ(&r, &w);
+    try std.testing.expect(true == true); // no integer overflow
 }

@@ -10,7 +10,7 @@ async function expectParseMDZ(input: string, expected: string) {
 
 Deno.test("instantiates the WASM module from JS", async () => {
   const input = "Hello, world!";
-  const expected = "<p>Hello, world!</p>";
+  const expected = "<p>Hello, world!</p>\n";
   await expectParseMDZ(input, expected);
 });
 

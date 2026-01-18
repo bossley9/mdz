@@ -120,6 +120,7 @@ test "2.3.1" {
     ;
     const output =
         \\<p>*not bold*</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -134,6 +135,7 @@ test "2.3.2" {
     ;
     const output =
         \\<p>&gt; not a blockquote</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -146,6 +148,7 @@ test "2.3.3" {
     ;
     const output =
         \\<p>&lt;div&gt; &amp;gt;</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -160,6 +163,7 @@ test "2.3.4" {
     ;
     const output =
         \\<p>foo \ bar</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -174,6 +178,7 @@ test "2.3.5" {
     ;
     const output =
         \\<p>Hello, world!</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -197,6 +202,7 @@ test "2.3.6" {
         \\  \\world!
         \\;
         \\</code></pre>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -229,6 +235,7 @@ test "4.1.1" {
         \\<blockquote>
         \\<p>hello</p>
         \\</blockquote>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -247,6 +254,7 @@ test "4.1.2" {
         \\<p>bar
         \\baz</p>
         \\</blockquote>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -268,6 +276,7 @@ test "4.1.3" {
         \\<p>bar
         \\baz</p>
         \\</blockquote>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -286,6 +295,7 @@ test "4.1.4" {
         \\baz
         \\foo</p>
         \\</blockquote>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -302,6 +312,7 @@ test "4.1.5" {
         \\<p>foo
         \\<del>-</p>
         \\</blockquote>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -319,6 +330,7 @@ test "4.1.6" {
         \\<pre><code>foo
         \\</code></pre>
         \\</blockquote>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -334,6 +346,7 @@ test "4.1.7" {
     const output =
         \\<blockquote>
         \\</blockquote>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -350,6 +363,7 @@ test "4.1.8" {
         \\<blockquote>
         \\<p> </p>
         \\</blockquote>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -366,6 +380,7 @@ test "4.1.9" {
         \\<blockquote>
         \\<p>foo</p>
         \\</blockquote>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -387,6 +402,7 @@ test "4.1.10" {
         \\<blockquote>
         \\<p>bar</p>
         \\</blockquote>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -405,6 +421,7 @@ test "4.1.11" {
         \\<p>foo
         \\bar</p>
         \\</blockquote>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -424,6 +441,7 @@ test "4.1.12" {
         \\<p>foo</p>
         \\<p>bar</p>
         \\</blockquote>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -441,6 +459,7 @@ test "4.1.13" {
         \\<p>bar</p>
         \\</blockquote>
         \\<p>baz</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -464,6 +483,7 @@ test "4.1.14" {
         \\</blockquote>
         \\</blockquote>
         \\<p>bar</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -490,6 +510,7 @@ test "4.1.15" {
         \\<p>baz</p>
         \\</blockquote>
         \\</blockquote>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -517,6 +538,7 @@ test "4.2.1" {
         \\<li>Eggs</li>
         \\<li>Yogurt</li>
         \\</ul>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -539,6 +561,7 @@ test "4.2.2" {
         \\<li>Come home</li>
         \\<li>Sleep</li>
         \\</ol>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -559,6 +582,7 @@ test "4.2.3" {
         \\Milk</li>
         \\<li>Eggs</li>
         \\</ul>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -585,6 +609,7 @@ test "4.2.4" {
         \\and continuation</li>
         \\<li>bar</li>
         \\</ul>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -608,6 +633,7 @@ test "4.2.5" {
         \\<em>bar</em></li>
         \\<li>baz</li>
         \\</ul>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -628,6 +654,7 @@ test "4.2.6" {
         \\continuation</li>
         \\<li>works</li>
         \\</ul>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -646,6 +673,7 @@ test "4.2.7" {
         \\<li><div>inline</div> <strong>content</strong></li>
         \\<li>only</li>
         \\</ul>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -664,6 +692,7 @@ test "5.1.1" {
     ;
     const output =
         \\<p>Hello, world!</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -679,6 +708,7 @@ test "5.1.2" {
     const output =
         \\<p>aaa</p>
         \\<p>bbb</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -700,6 +730,7 @@ test "5.1.3" {
         \\bbb</p>
         \\<p>ccc
         \\ddd</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -719,6 +750,7 @@ test "5.1.4" {
         \\*bar</p>
         \\<p>baz
         \\foo*</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -738,6 +770,7 @@ test "5.1.5" {
     const output =
         \\<p>aaa</p>
         \\<p>bbb</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -754,6 +787,7 @@ test "5.1.6" {
     const output =
         \\<p>  aaa
         \\ bbb</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -777,6 +811,7 @@ test "5.1.7" {
         \\  </p>
         \\<h1>aaa</h1>
         \\<p>  </p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -800,6 +835,7 @@ test "5.2.1" {
         \\<pre><code>&lt;
         \\ &gt;
         \\</code></pre>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -817,6 +853,7 @@ test "5.2.2" {
         \\<pre><code>aaa
         \\---
         \\</code></pre>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -834,6 +871,7 @@ test "5.2.3" {
     const output =
         \\<pre><code>content
         \\</code></pre>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -848,6 +886,7 @@ test "5.2.4" {
     ;
     const output =
         \\<pre><code></code></pre>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -862,6 +901,7 @@ test "5.2.5" {
     const output =
         \\<pre><code>aaa
         \\</code></pre>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -881,6 +921,7 @@ test "5.2.6" {
         \\</code></pre>
         \\</blockquote>
         \\<p>bbb</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -900,6 +941,7 @@ test "5.2.7" {
         \\<pre><code>
         \\
         \\</code></pre>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -913,6 +955,7 @@ test "5.2.8" {
     ;
     const output =
         \\<pre><code></code></pre>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -933,6 +976,7 @@ test "5.2.9" {
         \\ aaa
         \\aaa
         \\</code><code></code></p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -954,6 +998,7 @@ test "5.2.10" {
         \\  return 3
         \\end
         \\</code></pre>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -967,6 +1012,7 @@ test "5.2.11" {
     ;
     const output =
         \\<pre><code class="language-javascript"></code></pre>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -984,6 +1030,7 @@ test "5.2.12" {
     const output =
         \\<pre><code>aaa
         \\</code></pre>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1015,6 +1062,7 @@ test "5.3.1" {
         \\<h4 id="foo"><a href="#foo">foo</a></h4>
         \\<h5 id="foo"><a href="#foo">foo</a></h5>
         \\<h6 id="foo"><a href="#foo">foo</a></h6>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1029,6 +1077,7 @@ test "5.3.2" {
     ;
     const output =
         \\<p>####### foo</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1046,6 +1095,7 @@ test "5.3.3" {
     const output =
         \\<p>#5 bolt</p>
         \\<p>#hashtag</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1060,6 +1110,7 @@ test "5.3.4" {
     ;
     const output =
         \\<p>## foo</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1074,6 +1125,7 @@ test "5.3.5" {
     ;
     const output =
         \\<h2 id="foo-bar-baz"><a href="#foo-bar-baz">foo <em>bar</em> *baz*</a></h2>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1088,6 +1140,7 @@ test "5.3.6" {
     ;
     const output =
         \\<p> ### foo</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1102,6 +1155,7 @@ test "5.3.7" {
     const output =
         \\<p>foo
         \\    # bar</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1122,6 +1176,7 @@ test "5.3.8" {
         \\<hr />
         \\<h1>foo</h1>
         \\<hr />
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1138,6 +1193,7 @@ test "5.3.9" {
         \\<p>Foo bar
         \\# baz
         \\Bar foo</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1154,6 +1210,7 @@ test "5.3.10" {
     const output =
         \\<h1>Hello</h1>
         \\<p>world!</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1171,6 +1228,7 @@ test "5.3.11" {
     const output =
         \\<h1>Hello, world!</h1>
         \\<h2 id="hello-world"><a href="#hello-world">Hello, world!</a></h2>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1187,6 +1245,7 @@ test "5.4.1" {
     ;
     const output =
         \\<hr />
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1199,6 +1258,7 @@ test "5.4.2" {
     ;
     const output =
         \\<p><del></p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1217,6 +1277,7 @@ test "5.4.3" {
         \\<p>foo
         \\<del>-
         \\bar</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1235,6 +1296,7 @@ test "5.5.1" {
     ;
     const output =
         \\<div>foo</div>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1251,6 +1313,7 @@ test "5.5.2" {
         \\<p>custom</p>
         \\<p>HTML elements</p>
         \\<p>here</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1277,6 +1340,7 @@ test "5.5.3" {
         \\secrets
         \\</details>
         \\<p>foo bar</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1308,6 +1372,7 @@ test "5.6.1" {
         \\</tr>
         \\</tbody>
         \\</table>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1335,6 +1400,7 @@ test "5.6.2" {
         \\</tr>
         \\</tbody>
         \\</table>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1355,6 +1421,7 @@ test "6.1.1" {
     ;
     const output =
         \\<p>Hello, <em>world</em>! <strong>strong here</strong></p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1367,6 +1434,7 @@ test "6.1.2" {
     ;
     const output =
         \\<p><em>foo</em> <em>bar</em></p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1379,6 +1447,7 @@ test "6.1.3" {
     ;
     const output =
         \\<p><em>hello* world</em></p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1391,6 +1460,7 @@ test "6.1.4" {
     ;
     const output =
         \\<p>foo<em>bar</em></p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1405,6 +1475,7 @@ test "6.1.5" {
     ;
     const output =
         \\<p><em>foo <strong>bar</strong> baz</em></p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1421,6 +1492,7 @@ test "6.2.1" {
     ;
     const output =
         \\<p>foo <code>bar</code></p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1433,6 +1505,7 @@ test "6.2.2" {
     ;
     const output =
         \\<p>foo <code>&lt;div&gt;</code> bar</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1447,6 +1520,7 @@ test "6.2.3" {
     ;
     const output =
         \\<p>the backtick character is <code>`</code>.</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1463,6 +1537,7 @@ test "6.3.1" {
     ;
     const output =
         \\<p><a href="https://example.com">link here</a></p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1475,6 +1550,7 @@ test "6.3.2" {
     ;
     const output =
         \\<p>here's <a href="https://example.com"><em>emphasis</em> and <code>code</code> within a link</a></p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1487,6 +1563,7 @@ test "6.3.3" {
     ;
     const output =
         \\<p>an [escaped](link)</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1499,6 +1576,7 @@ test "6.3.4" {
     ;
     const output =
         \\<p><a href="https://example.com">link 1</a> and <a href="https://example2.com">link 2</a></p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1511,6 +1589,7 @@ test "6.3.5" {
     ;
     const output =
         \\<p>link with <a href="https://xyz.xyz"><code>literal ]( symbols</code></a> in the alt text</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1538,6 +1617,7 @@ test "6.4.1" {
         \\<li id="fn1" class="footnote-item"><p>Gandalf was heavily involved. <a href="#fnref1" class="footnote-backref">↩︎</a></p></li>
         \\</ol>
         \\</section>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1550,6 +1630,7 @@ test "6.4.2" {
     ;
     const output =
         \\<p>Dangling citations<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup> are not an error<sup class="footnote-ref"><a href="#fn2" id="fnref2">[2]</a></sup>.</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1562,6 +1643,7 @@ test "6.4.3" {
     ;
     const output =
         \\<p>The same ref<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup> may be used twice<sup class="footnote-ref"><a href="#fn1" id="fnref1:1">[1:1]</a></sup>.</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1578,6 +1660,7 @@ test "6.4.4" {
         \\<li id="fn1" class="footnote-item"><p>A footnote reference by itself</p></li>
         \\</ol>
         \\</section>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1601,6 +1684,7 @@ test "6.4.5" {
         \\<li id="fn2" class="footnote-item"><p>footnote 2 <a href="#fnref2" class="footnote-backref">↩︎</a></p></li>
         \\</ol>
         \\</section>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1620,6 +1704,7 @@ test "6.4.6" {
         \\<li id="fn1" class="footnote-item"><p>footnote <a href="#fnref1" class="footnote-backref">↩︎</a> <a href="#fnref1:1" class="footnote-backref">↩︎</a></p></li>
         \\</ol>
         \\</section>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1639,6 +1724,7 @@ test "6.4.7" {
         \\<li id="fn1" class="footnote-item"><p>references may contain <code>inline content</code>. <a href="#fnref1" class="footnote-backref">↩︎</a></p></li>
         \\</ol>
         \\</section>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1655,6 +1741,7 @@ test "6.5.1" {
     ;
     const output =
         \\<p><img alt="my dog" src="https://example.com/dog.jpg" /></p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1667,6 +1754,7 @@ test "6.5.2" {
     ;
     const output =
         \\<p>my face looks like <img alt="portrait" src="https://example.com/me.jpg" /> and looks beautiful</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1679,6 +1767,7 @@ test "6.5.3" {
     ;
     const output =
         \\<p><img alt="escaping symbols like * and [ in alt" src="https://example.com/img.png" /></p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1691,6 +1780,7 @@ test "6.5.4" {
     ;
     const output =
         \\<p><img alt="&quot;quotes&quot; are escaped." src="https://example.com/img.png" /></p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1707,6 +1797,7 @@ test "6.6.1" {
     ;
     const output =
         \\<p>Tomorrow is <s>Tuesday</s> Wednesday.</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1723,6 +1814,7 @@ test "6.7.1" {
     ;
     const output =
         \\<p><del>yesterday</del>today<ins>tomorrow</ins></p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
@@ -1739,6 +1831,7 @@ test "6.8.1" {
     ;
     const output =
         \\<p>foo <mark>bar</mark> baz</p>
+        \\
     ;
     try th.expectParseMDZ(input, output);
 }
