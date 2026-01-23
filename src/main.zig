@@ -3,18 +3,13 @@ const mdz = @import("mdz");
 
 const Io = std.Io;
 
-pub fn main() !void {
-    var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
-    defer std.debug.assert(debug_allocator.deinit() == .ok);
-    const allocator = debug_allocator.allocator();
+pub fn main(init: std.process.Init) !void {
+    const allocator = init.gpa;
+    const io = init.io;
 
-    var threaded = Io.Threaded.init(allocator, .{});
-    defer threaded.deinit();
-    const io = threaded.io();
-
-    var args = try std.process.argsWithAllocator(allocator);
+    var args = try init.minimal.args.iterateAllocator(allocator);
     defer args.deinit();
-    _ = args.next();
+    std.debug.assert(args.skip() == true);
     const path = args.next() orelse return error.MissingFileInputArgument;
 
     const file = try Io.Dir.openFileAbsolute(io, path, .{});
