@@ -283,6 +283,7 @@ fn closeBlocks(w: *Io.Writer, state: *ast.BlockState, depth: usize) CloseBlocksE
         .paragraph => len += try w.write("</p>\n"),
         .paragraph_hidden, .html_block => {},
         .code_block => len += try w.write("</code></pre>\n"),
+        .pre_block => len += try w.write("</pre>\n"),
         .footnote_reference => len += try w.write("</ol>\n</section>\n"),
         .table => len += try w.write("</tbody>\n</table>\n"),
     };
@@ -346,6 +347,15 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
                     len += try closeBlocks(w, state, depth);
                 } else {
                     for (line) |c| len += try printEscapedHtml(c, w);
+                    len += try w.write("\n");
+                }
+                return len;
+            },
+            .pre_block => {
+                if (std.mem.startsWith(u8, line, "===")) {
+                    len += try closeBlocks(w, state, depth);
+                } else {
+                    len += try w.write(line);
                     len += try w.write("\n");
                 }
                 return len;
@@ -424,6 +434,9 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
             len += try w.write(fmt);
         }
         return len + try w.write(">");
+    } else if (std.mem.startsWith(u8, line, "===")) { // preformatted block
+        try state.push(.pre_block);
+        return len + try w.write("<pre>");
     } else if (std.mem.startsWith(u8, line, "###### ")) { // heading 6
         return len + try processHeading(6, line, w, state);
     } else if (std.mem.startsWith(u8, line, "##### ")) { // heading 5

@@ -1,6 +1,6 @@
 {
   "name": "@bossley9/mdz",
-  "version": "1.3.2",
+  "version": "1.4.0",
   "tasks": {
     "build": "deno run -A build.ts",
     "test": "deno run build && deno test --allow-read"

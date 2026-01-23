@@ -11,6 +11,7 @@ pub const Block = enum(u4) {
     paragraph,
     paragraph_hidden,
     code_block,
+    pre_block,
     html_block,
     footnote_reference,
     table,

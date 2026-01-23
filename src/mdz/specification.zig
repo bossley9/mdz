@@ -1406,6 +1406,66 @@ test "5.6.2" {
 }
 // ```
 
+// ### 5.7. Preformatted Blocks
+
+// A <dfn>preformatted fence</dfn> is a sequence of three consecutive equals (`=`) characters. A preformatted block begins with a preformatted fence and ends with preformatted fence. Similar to a code block, the contents of a preformatted block may span multiple lines until the ending fence is reached. A preformatted block's contents are preserved as is including whitespace. This means that HTML tags are also preserved and must be escaped with ampersand codes manually in order to be properly escaped.
+
+// ```zig
+test "5.7.1" {
+    const input =
+        \\===
+        \\<em> this         is preformatted   text </em>    <br>
+        \\===
+    ;
+    const output =
+        \\<pre><em> this         is preformatted   text </em>    <br>
+        \\</pre>
+        \\
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "5.7.2" {
+    const input =
+        \\===
+        \\hello
+        \\   world
+        \\     w  h  i  t  e  s  p  a  c  e
+        \\                         ... preserved
+        \\===
+    ;
+    const output =
+        \\<pre>hello
+        \\   world
+        \\     w  h  i  t  e  s  p  a  c  e
+        \\                         ... preserved
+        \\</pre>
+        \\
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "5.7.3" {
+    const input =
+        \\===
+        \\<em>not escaped</em>
+        \\&lt;em&gt;escaped&lt;/em&gt;
+        \\===
+    ;
+    const output =
+        \\<pre><em>not escaped</em>
+        \\&lt;em&gt;escaped&lt;/em&gt;
+        \\</pre>
+        \\
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
 // ## 6. Inline Content
 
 // Inline content is parsed after block structure is determined. Inline content is parsed character by character - that is, inlines do not self-close unlike blocks. It is the responsibilty of the writer to ensure that every inline content marker is properly closed. Additionally, all inlines depend on specific marker characters (`[`, `]`, `` ` ``, `*`, `\\`) that must be escaped. Non-escaped marker characters may lead to undefined behavior.
