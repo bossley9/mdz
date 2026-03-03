@@ -1,7 +1,7 @@
 // # Markdown-Z (MDZ)
 const th = @import("./test_helpers.zig");
 
-// Markdown-Z is a variation of Markdown, CommonMark, and its various popular extensions implemented in Zig for WASM. It is designed to produce HTML from a simplified markup language at lightning-fast speeds. It is a self-contained binary that can be ported to any JS runtime that supports Web Assembly 1.0.
+// Markdown-Z is a variation of Markdown, CommonMark, and its various popular extensions implemented in Zig for WASM. It is designed to produce HTML from a simplified markup language at very high performance. It is a self-contained binary that can be ported to any JS runtime that supports Web Assembly 1.0.
 
 // ## Usage
 
