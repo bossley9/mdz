@@ -2,7 +2,6 @@ const in_dir = "./src/wasm";
 const out_dir = "./dist";
 const marker = "/*generated_code_flag_marker*/";
 
-await new Deno.Command("zig", { args: ["build", "wasm"] }).output();
 await Deno.mkdir(out_dir).catch(() => {}); // ignore if already exists
 
 // binary generation
