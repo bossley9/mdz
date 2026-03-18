@@ -1,5 +1,6 @@
 const std = @import("std");
 const ast = @import("./ast.zig");
+const highlight = @import("./highlight.zig");
 const slugify = @import("../slugify/slugify.zig");
 
 const Io = std.Io;
@@ -28,7 +29,7 @@ fn takeNewlineExclusive(r: *Io.Reader) Io.Reader.DelimiterError![]u8 {
     return result[0 .. result.len - 1];
 }
 
-fn printEscapedHtml(c: u8, w: *Io.Writer) Io.Writer.Error!usize {
+pub fn printEscapedHtml(c: u8, w: *Io.Writer) Io.Writer.Error!usize {
     return switch (c) {
         '>' => w.write("&gt;"),
         '<' => w.write("&lt;"),
@@ -346,8 +347,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
                 if (std.mem.startsWith(u8, line, "```")) {
                     len += try closeBlocks(w, state, depth);
                 } else {
-                    for (line) |c| len += try printEscapedHtml(c, w);
-                    len += try w.write("\n");
+                    len += try highlight.highlight_code_line(w, line, state.lang);
                 }
                 return len;
             },
@@ -433,6 +433,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
             const fmt = try std.fmt.bufPrint(&buf, " class=\"language-{s}\"", .{lang});
             len += try w.write(fmt);
         }
+        state.lang = std.meta.stringToEnum(ast.CodeLanguage, lang) orelse .plaintext;
         return len + try w.write(">");
     } else if (std.mem.startsWith(u8, line, "===")) { // preformatted block
         try state.push(.pre_block);

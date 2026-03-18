@@ -70,7 +70,7 @@ pub fn build(b: *std.Build) !void {
     const test_step = b.step("test", "Run tests");
     const test_exe = b.addTest(.{
         .root_module = mdz,
-        .filters = if (b.args) |args| &.{args[0]} else &.{},
+        .filters = b.args orelse &.{},
     });
     const test_cmd = b.addRunArtifact(test_exe);
     test_step.dependOn(&test_cmd.step);

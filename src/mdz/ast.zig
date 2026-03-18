@@ -30,6 +30,14 @@ const InlineFlags = packed struct {
     is_mark: bool = false,
 };
 
+pub const CodeLanguage = enum {
+    diff,
+    js,
+    patch,
+    plaintext,
+    sh,
+};
+
 const max_stack_len = 16;
 
 pub const StackError = error{BlockStackOverflow};
@@ -41,6 +49,7 @@ pub const BlockState = struct {
     /// stored as a dictionary where the index represents the numeric
     /// citation symbol and the value represents the number of citations
     footnotes: [128]u8,
+    lang: CodeLanguage,
 
     pub fn init() BlockState {
         var state = BlockState{
@@ -48,6 +57,7 @@ pub const BlockState = struct {
             .len = 0,
             .flags = InlineFlags{},
             .footnotes = undefined,
+            .lang = .plaintext,
         };
         @memset(&state.items, .nil);
         @memset(&state.footnotes, 0);
