@@ -7,10 +7,12 @@ const Io = std.Io;
 
 const SyntaxGroup = enum {
     addition,
+    attr,
     comment,
     deletion,
     meta,
     plain,
+    section,
     string_single,
     string_double,
 };
@@ -48,10 +50,12 @@ fn changeSyntaxGroup(w: *Io.Writer, current_group: *SyntaxGroup, new_group: Synt
     current_group.* = new_group;
     return switch (new_group) {
         .addition => try w.write("<span class=\"lang-addition\">"),
+        .attr => try w.write("<span class=\"lang-attr\">"),
         .comment => try w.write("<span class=\"lang-comment\">"),
         .deletion => try w.write("<span class=\"lang-deletion\">"),
         .meta => try w.write("<span class=\"lang-meta\">"),
         .plain => try w.write("</span>"),
+        .section => try w.write("<span class=\"lang-section\">"),
         .string_single, .string_double => try w.write("<span class=\"lang-string\">"),
     };
 }
@@ -95,6 +99,34 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     }
                 }
             },
+            .ini => {
+                if (i == 0) {
+                    if (line[i] == '[') {
+                        len += try changeSyntaxGroup(w, &group, .section);
+                        group_index = i;
+                    } else {
+                        len += try changeSyntaxGroup(w, &group, .attr);
+                        group_index = i;
+                    }
+                } else if (group == .plain and line[i] == '"') {
+                    len += try changeSyntaxGroup(w, &group, .string_double);
+                    group_index = i;
+                }
+
+                if (i != group_index) {
+                    if (group == .attr and lookAheadHas(line, i, " =")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    }
+                }
+
+                len += try parser.printEscapedHtml(line[i], w);
+
+                if (i != group_index) {
+                    if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    }
+                }
+            },
             .sh => {
                 if (i == 0 and lookAheadHas(line, i, "#!")) {
                     len += try changeSyntaxGroup(w, &group, .meta);
@@ -114,8 +146,12 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                         len += try writeKeywordIfExists(w, line, &i, .keyword, "if");
                         len += try writeKeywordIfExists(w, line, &i, .keyword, "then");
 
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "chgrp");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "chmod");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "chown");
                         len += try writeKeywordIfExists(w, line, &i, .builtin, "echo");
                         len += try writeKeywordIfExists(w, line, &i, .builtin, "mkdir");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "printf");
                         len += try writeKeywordIfExists(w, line, &i, .builtin, "rm");
 
                         if (i >= line.len) break;
@@ -124,6 +160,32 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
 
                 len += try parser.printEscapedHtml(line[i], w);
 
+                if (i != group_index) {
+                    if (group == .string_single and lookBehindHas(line, i, "'") and !lookBehindHas(line, i, "\\'")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    } else if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    }
+                }
+            },
+            .vim => {
+                if (group == .plain) {
+                    if (lookAheadHas(line, i, "\" ")) {
+                        len += try changeSyntaxGroup(w, &group, .comment);
+                    } else if (line[i] == '\'') {
+                        len += try changeSyntaxGroup(w, &group, .string_single);
+                        group_index = i;
+                    } else if (line[i] == '"') {
+                        len += try changeSyntaxGroup(w, &group, .string_double);
+                        group_index = i;
+                    } else {
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "let");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "set");
+
+                        if (i >= line.len) break;
+                    }
+                }
+                len += try parser.printEscapedHtml(line[i], w);
                 if (i != group_index) {
                     if (group == .string_single and lookBehindHas(line, i, "'") and !lookBehindHas(line, i, "\\'")) {
                         len += try changeSyntaxGroup(w, &group, .plain);
@@ -184,6 +246,24 @@ test "diff, patch" {
     try th.expectCodeHighlight(.patch, input, output);
 }
 
+test "ini" {
+    const input =
+        \\[section]
+        \\key = "value"
+        \\another-key = "another value"
+        \\array = ["1", "2", "3"]
+        \\
+    ;
+    const output =
+        \\<span class="lang-section">[section]</span>
+        \\<span class="lang-attr">key</span> = <span class="lang-string">"value"</span>
+        \\<span class="lang-attr">another-key</span> = <span class="lang-string">"another value"</span>
+        \\<span class="lang-attr">array</span> = [<span class="lang-string">"1"</span>, <span class="lang-string">"2"</span>, <span class="lang-string">"3"</span>]
+        \\
+    ;
+    try th.expectCodeHighlight(.ini, input, output);
+}
+
 test "sh" {
     const input =
         \\#!/bin/sh
@@ -212,4 +292,28 @@ test "sh" {
         \\
     ;
     try th.expectCodeHighlight(.sh, input, output);
+}
+
+test "vim" {
+    const input =
+        \\set viminfo="" " comment with string in line
+        \\
+        \\let g:args = [
+        \\  'hello',
+        \\  'world',
+        \\  '123',
+        \\]
+        \\
+    ;
+    const output =
+        \\<span class="lang-keyword">set</span> viminfo=<span class="lang-string">""</span> <span class="lang-comment">" comment with string in line</span>
+        \\
+        \\<span class="lang-keyword">let</span> g:args = [
+        \\  <span class="lang-string">'hello'</span>,
+        \\  <span class="lang-string">'world'</span>,
+        \\  <span class="lang-string">'123'</span>,
+        \\]
+        \\
+    ;
+    try th.expectCodeHighlight(.vim, input, output);
 }

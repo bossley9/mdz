@@ -32,10 +32,12 @@ const InlineFlags = packed struct {
 
 pub const CodeLanguage = enum {
     diff,
+    ini,
     js,
     patch,
     plaintext,
     sh,
+    vim,
 };
 
 const max_stack_len = 16;

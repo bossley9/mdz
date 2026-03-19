@@ -27,7 +27,7 @@ pub fn expectCodeHighlight(
     comptime expected: []const u8,
 ) !void {
     var reader = Io.Reader.fixed(input);
-    var expected_buf: [expected.len * 2]u8 = undefined;
+    var expected_buf: [expected.len * 5]u8 = undefined;
     var writer = Io.Writer.fixed(&expected_buf);
     var len: usize = 0;
 
