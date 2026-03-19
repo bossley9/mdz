@@ -27,12 +27,42 @@ fn lookBehindHas(line: []u8, i: usize, pattern: []const u8) bool {
     return std.mem.eql(u8, line[i - pattern.len + 1 .. i + 1], pattern);
 }
 
+/// Format and print keyword if it exists.
+fn writeKeywordIfExists(w: *Io.Writer, line: []u8, i: *usize, kind: enum { keyword, builtin }, keyword: []const u8) Io.Writer.Error!usize {
+    var len: usize = 0;
+    const does_start_match = i.* == 0 or !std.ascii.isAlphanumeric(line[i.* - 1]);
+    if (!does_start_match) return len;
+    if (!lookAheadHas(line, i.*, keyword)) return len;
+    const does_end_match = i.* + keyword.len == line.len or !std.ascii.isAlphanumeric(line[i.* + keyword.len]);
+    if (!does_end_match) return len;
+
+    i.* += keyword.len;
+    len += try w.write(if (kind == .builtin) "<span class=\"lang-builtin\">" else "<span class=\"lang-keyword\">");
+    len += try w.write(keyword);
+    len += try w.write("</span>");
+
+    return len;
+}
+
+fn changeSyntaxGroup(w: *Io.Writer, current_group: *SyntaxGroup, new_group: SyntaxGroup) Io.Writer.Error!usize {
+    current_group.* = new_group;
+    return switch (new_group) {
+        .addition => try w.write("<span class=\"lang-addition\">"),
+        .comment => try w.write("<span class=\"lang-comment\">"),
+        .deletion => try w.write("<span class=\"lang-deletion\">"),
+        .meta => try w.write("<span class=\"lang-meta\">"),
+        .plain => try w.write("</span>"),
+        .string_single, .string_double => try w.write("<span class=\"lang-string\">"),
+    };
+}
+
 /// Rudimentary code highlighter that operates on individual lines of code
 /// using basic forward and backward lookup
 pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io.Writer.Error!usize {
     var len: usize = 0;
     var i: usize = 0;
     var group: SyntaxGroup = .plain;
+    var group_index: usize = 0;
 
     while (i < line.len) : (i += 1) {
         switch (lang) {
@@ -43,35 +73,71 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                         lookAheadHas(line, i, "---") or
                         lookAheadHas(line, i, "+++"))
                     {
-                        group = .comment;
-                        len += try w.write("<span class=\"lang-comment\">");
+                        len += try changeSyntaxGroup(w, &group, .comment);
+                        group_index = i;
                     } else if (i == 0 and line[i] == '-') {
-                        group = .deletion;
-                        len += try w.write("<span class=\"lang-deletion\">");
+                        len += try changeSyntaxGroup(w, &group, .deletion);
+                        group_index = i;
                     } else if (i == 0 and line[i] == '+') {
-                        group = .addition;
-                        len += try w.write("<span class=\"lang-addition\">");
+                        len += try changeSyntaxGroup(w, &group, .addition);
+                        group_index = i;
                     } else if (lookAheadHas(line, i, "@@")) {
-                        group = .meta;
-                        len += try w.write("<span class=\"lang-meta\">");
+                        len += try changeSyntaxGroup(w, &group, .meta);
+                        group_index = i;
                     }
                 }
 
                 len += try parser.printEscapedHtml(line[i], w);
 
-                if (group == .meta and lookBehindHas(line, i, "@@")) {
-                    group = .plain;
-                    len += try w.write("</span>");
+                if (i != group_index) {
+                    if (group == .meta and lookBehindHas(line, i, "@@")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    }
                 }
             },
-            else => {
+            .sh => {
+                if (i == 0 and lookAheadHas(line, i, "#!")) {
+                    len += try changeSyntaxGroup(w, &group, .meta);
+                    group_index = i;
+                } else if (group == .plain) {
+                    if (lookAheadHas(line, i, "#")) {
+                        len += try changeSyntaxGroup(w, &group, .comment);
+                        group_index = i;
+                    } else if (line[i] == '\'') {
+                        len += try changeSyntaxGroup(w, &group, .string_single);
+                        group_index = i;
+                    } else if (line[i] == '"') {
+                        len += try changeSyntaxGroup(w, &group, .string_double);
+                        group_index = i;
+                    } else {
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "fi");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "if");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "then");
+
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "echo");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "mkdir");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "rm");
+
+                        if (i >= line.len) break;
+                    }
+                }
+
                 len += try parser.printEscapedHtml(line[i], w);
+
+                if (i != group_index) {
+                    if (group == .string_single and lookBehindHas(line, i, "'") and !lookBehindHas(line, i, "\\'")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    } else if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    }
+                }
             },
+            else => len += try parser.printEscapedHtml(line[i], w),
         }
     }
 
     if (group != .plain) {
-        len += try w.write("</span>");
+        len += try changeSyntaxGroup(w, &group, .plain);
     }
 
     return len + try w.write("\n");
@@ -116,4 +182,34 @@ test "diff, patch" {
     ;
     try th.expectCodeHighlight(.diff, input, output);
     try th.expectCodeHighlight(.patch, input, output);
+}
+
+test "sh" {
+    const input =
+        \\#!/bin/sh
+        \\
+        \\# comment
+        \\echo "Hello 'john'!"
+        \\echo 'another \' string' # trailing comment
+        \\ifconfig
+        \\
+        \\if something; then
+        \\  rm -rf /
+        \\fi
+        \\
+    ;
+    const output =
+        \\<span class="lang-meta">#!/bin/sh</span>
+        \\
+        \\<span class="lang-comment"># comment</span>
+        \\<span class="lang-builtin">echo</span> <span class="lang-string">"Hello 'john'!"</span>
+        \\<span class="lang-builtin">echo</span> <span class="lang-string">'another \' string'</span> <span class="lang-comment"># trailing comment</span>
+        \\ifconfig
+        \\
+        \\<span class="lang-keyword">if</span> something; <span class="lang-keyword">then</span>
+        \\  <span class="lang-builtin">rm</span> -rf /
+        \\<span class="lang-keyword">fi</span>
+        \\
+    ;
+    try th.expectCodeHighlight(.sh, input, output);
 }
