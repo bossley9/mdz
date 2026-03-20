@@ -31,6 +31,7 @@ const InlineFlags = packed struct {
 };
 
 pub const CodeLanguage = enum {
+    css,
     diff,
     ini,
     js,

@@ -69,9 +69,19 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
     var group_index: usize = 0;
 
     const has_colon = lang == .yaml and (std.mem.indexOfScalar(u8, line, ':') orelse 0) > 0;
+    const has_bracket = lang == .css and (std.mem.indexOfScalar(u8, line, '{') orelse 0) > 0;
 
     while (i < line.len) : (i += 1) {
         switch (lang) {
+            .css => {
+                if (i == 0 and has_bracket) {
+                    len += try changeSyntaxGroup(w, &group, .attr);
+                    group_index = i;
+                } else if (i != group_index and lookAheadHas(line, i, " {")) {
+                    len += try changeSyntaxGroup(w, &group, .plain);
+                }
+                len += try parser.printEscapedHtml(line[i], w);
+            },
             .diff, .patch => {
                 if (group == .plain) {
                     if (lookAheadHas(line, i, "index") or
@@ -156,11 +166,14 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                         len += try writeKeywordIfExists(w, line, &i, .keyword, "if");
                         len += try writeKeywordIfExists(w, line, &i, .keyword, "then");
 
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "cd");
                         len += try writeKeywordIfExists(w, line, &i, .builtin, "chgrp");
                         len += try writeKeywordIfExists(w, line, &i, .builtin, "chmod");
                         len += try writeKeywordIfExists(w, line, &i, .builtin, "chown");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "cp");
                         len += try writeKeywordIfExists(w, line, &i, .builtin, "echo");
                         len += try writeKeywordIfExists(w, line, &i, .builtin, "mkdir");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "mv");
                         len += try writeKeywordIfExists(w, line, &i, .builtin, "printf");
                         len += try writeKeywordIfExists(w, line, &i, .builtin, "rm");
 
@@ -238,6 +251,30 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
     }
 
     return len + try w.write("\n");
+}
+
+test "css" {
+    const input =
+        \\.inlineSelector { display: none; }
+        \\div > div > #complexSelector:has(.something) {
+        \\  display: block;
+        \\}
+        \\div {
+        \\  display: block;
+        \\}
+        \\
+    ;
+    const output =
+        \\<span class="lang-attr">.inlineSelector</span> { display: none; }
+        \\<span class="lang-attr">div &gt; div &gt; #complexSelector:has(.something)</span> {
+        \\  display: block;
+        \\}
+        \\<span class="lang-attr">div</span> {
+        \\  display: block;
+        \\}
+        \\
+    ;
+    try th.expectCodeHighlight(.css, input, output);
 }
 
 test "diff, patch" {
