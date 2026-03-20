@@ -11,6 +11,7 @@ const SyntaxGroup = enum {
     comment,
     deletion,
     meta,
+    number,
     plain,
     section,
     string_single,
@@ -54,6 +55,7 @@ fn changeSyntaxGroup(w: *Io.Writer, current_group: *SyntaxGroup, new_group: Synt
         .comment => try w.write("<span class=\"lang-comment\">"),
         .deletion => try w.write("<span class=\"lang-deletion\">"),
         .meta => try w.write("<span class=\"lang-meta\">"),
+        .number => try w.write("<span class=\"lang-number\">"),
         .plain => try w.write("</span>"),
         .section => try w.write("<span class=\"lang-section\">"),
         .string_single, .string_double => try w.write("<span class=\"lang-string\">"),
@@ -68,8 +70,9 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
     var group: SyntaxGroup = .plain;
     var group_index: usize = 0;
 
-    const has_colon = lang == .yaml and (std.mem.indexOfScalar(u8, line, ':') orelse 0) > 0;
+    const has_colon = (std.mem.indexOfScalar(u8, line, ':') orelse 0) > 0;
     const has_bracket = lang == .css and (std.mem.indexOfScalar(u8, line, '{') orelse 0) > 0;
+    var num_spaces: usize = 0;
 
     while (i < line.len) : (i += 1) {
         switch (lang) {
@@ -147,13 +150,46 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     }
                 }
             },
-            .sh => {
+            .json => {
+                if (i == 0 and has_colon) {
+                    len += try changeSyntaxGroup(w, &group, .attr);
+                    group_index = i;
+                }
+
+                if ((group == .attr and line[i] == ':')) {
+                    len += try changeSyntaxGroup(w, &group, .plain);
+                }
+
+                if (group == .number and !std.ascii.isDigit(line[i]) and line[i] != '.') {
+                    len += try changeSyntaxGroup(w, &group, .plain);
+                }
+
+                if (group == .plain) {
+                    if (line[i] == '"') {
+                        len += try changeSyntaxGroup(w, &group, .string_double);
+                        group_index = i;
+                    } else if (std.ascii.isDigit(line[i])) {
+                        len += try changeSyntaxGroup(w, &group, .number);
+                        group_index = i;
+                    }
+                }
+                len += try parser.printEscapedHtml(line[i], w);
+                if (group_index != i) {
+                    if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    }
+                }
+            },
+            .sh, .crontab => {
                 if (i == 0 and lookAheadHas(line, i, "#!")) {
                     len += try changeSyntaxGroup(w, &group, .meta);
                     group_index = i;
                 } else if (group == .plain) {
                     if (lookAheadHas(line, i, "#")) {
                         len += try changeSyntaxGroup(w, &group, .comment);
+                        group_index = i;
+                    } else if (lang == .crontab and i == 0) {
+                        len += try changeSyntaxGroup(w, &group, .section);
                         group_index = i;
                     } else if (line[i] == '\'') {
                         len += try changeSyntaxGroup(w, &group, .string_single);
@@ -178,6 +214,13 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                         len += try writeKeywordIfExists(w, line, &i, .builtin, "rm");
 
                         if (i >= line.len) break;
+                    }
+                }
+
+                if (line[i] == ' ' and group == .section) {
+                    num_spaces += 1;
+                    if (num_spaces > 4) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
                     }
                 }
 
@@ -251,6 +294,22 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
     }
 
     return len + try w.write("\n");
+}
+
+test "crontab" {
+    const input =
+        \\# this is a good cronjob
+        \\*/5 * */2 * * rm -r /home/sam # inline comment
+        \\* * * * * echo hello
+        \\
+    ;
+    const output =
+        \\<span class="lang-comment"># this is a good cronjob</span>
+        \\<span class="lang-section">*/5 * */2 * *</span> <span class="lang-builtin">rm</span> -r /home/sam <span class="lang-comment"># inline comment</span>
+        \\<span class="lang-section">* * * * *</span> <span class="lang-builtin">echo</span> hello
+        \\
+    ;
+    try th.expectCodeHighlight(.crontab, input, output);
 }
 
 test "css" {
@@ -336,6 +395,42 @@ test "ini" {
         \\
     ;
     try th.expectCodeHighlight(.ini, input, output);
+}
+
+test "json" {
+    const input =
+        \\{
+        \\  "property": "value",
+        \\  "nested": {
+        \\    "prop2": 0,
+        \\    "prop3": "val3 is \"hi\""
+        \\  },
+        \\  "arr": [
+        \\    "1",
+        \\    "2"
+        \\  ],
+        \\  "arrNum": [ 1, 2, 3.0 ],
+        \\  "inline": [ "array" ]
+        \\}
+        \\
+    ;
+    const output =
+        \\{
+        \\<span class="lang-attr">  "property"</span>: <span class="lang-string">"value"</span>,
+        \\<span class="lang-attr">  "nested"</span>: {
+        \\<span class="lang-attr">    "prop2"</span>: <span class="lang-number">0</span>,
+        \\<span class="lang-attr">    "prop3"</span>: <span class="lang-string">"val3 is \"hi\""</span>
+        \\  },
+        \\<span class="lang-attr">  "arr"</span>: [
+        \\    <span class="lang-string">"1"</span>,
+        \\    <span class="lang-string">"2"</span>
+        \\  ],
+        \\<span class="lang-attr">  "arrNum"</span>: [ <span class="lang-number">1</span>, <span class="lang-number">2</span>, <span class="lang-number">3.0</span> ],
+        \\<span class="lang-attr">  "inline"</span>: [ <span class="lang-string">"array"</span> ]
+        \\}
+        \\
+    ;
+    try th.expectCodeHighlight(.json, input, output);
 }
 
 test "sh" {

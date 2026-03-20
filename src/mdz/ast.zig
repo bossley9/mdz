@@ -31,10 +31,12 @@ const InlineFlags = packed struct {
 };
 
 pub const CodeLanguage = enum {
+    crontab,
     css,
     diff,
     ini,
     js,
+    json,
     patch,
     plaintext,
     sh,
