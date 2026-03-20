@@ -38,6 +38,7 @@ pub const CodeLanguage = enum {
     plaintext,
     sh,
     vim,
+    yaml,
 };
 
 const max_stack_len = 16;

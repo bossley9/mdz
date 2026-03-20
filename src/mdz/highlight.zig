@@ -68,6 +68,8 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
     var group: SyntaxGroup = .plain;
     var group_index: usize = 0;
 
+    const has_colon = lang == .yaml and (std.mem.indexOfScalar(u8, line, ':') orelse 0) > 0;
+
     while (i < line.len) : (i += 1) {
         switch (lang) {
             .diff, .patch => {
@@ -104,13 +106,21 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     if (line[i] == '[') {
                         len += try changeSyntaxGroup(w, &group, .section);
                         group_index = i;
+                    } else if (line[i] == '#') {
+                        len += try changeSyntaxGroup(w, &group, .comment);
+                        group_index = i;
                     } else {
                         len += try changeSyntaxGroup(w, &group, .attr);
                         group_index = i;
                     }
-                } else if (group == .plain and line[i] == '"') {
-                    len += try changeSyntaxGroup(w, &group, .string_double);
-                    group_index = i;
+                } else if (group == .plain) {
+                    if (line[i] == '"') {
+                        len += try changeSyntaxGroup(w, &group, .string_double);
+                        group_index = i;
+                    } else if (line[i] == '#') {
+                        len += try changeSyntaxGroup(w, &group, .comment);
+                        group_index = i;
+                    }
                 }
 
                 if (i != group_index) {
@@ -194,6 +204,31 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     }
                 }
             },
+            .yaml => {
+                if (line[i] == '#') {
+                    if (group != .plain) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    }
+                    len += try changeSyntaxGroup(w, &group, .comment);
+                    group_index = i;
+                } else if (i == 0 and has_colon) {
+                    len += try changeSyntaxGroup(w, &group, .attr);
+                    group_index = i;
+                } else if (group == .plain and std.ascii.isAlphanumeric(line[i])) {
+                    len += try changeSyntaxGroup(w, &group, .string_single);
+                    group_index = i;
+                }
+
+                len += try parser.printEscapedHtml(line[i], w);
+
+                if (group_index != i) {
+                    if (group == .attr and lookBehindHas(line, i, ":") and i + 1 < line.len) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                        len += try changeSyntaxGroup(w, &group, .string_single);
+                        group_index = i;
+                    }
+                }
+            },
             else => len += try parser.printEscapedHtml(line[i], w),
         }
     }
@@ -248,15 +283,17 @@ test "diff, patch" {
 
 test "ini" {
     const input =
+        \\# comment
         \\[section]
-        \\key = "value"
+        \\key = "value" # another comment
         \\another-key = "another value"
         \\array = ["1", "2", "3"]
         \\
     ;
     const output =
+        \\<span class="lang-comment"># comment</span>
         \\<span class="lang-section">[section]</span>
-        \\<span class="lang-attr">key</span> = <span class="lang-string">"value"</span>
+        \\<span class="lang-attr">key</span> = <span class="lang-string">"value"</span> <span class="lang-comment"># another comment</span>
         \\<span class="lang-attr">another-key</span> = <span class="lang-string">"another value"</span>
         \\<span class="lang-attr">array</span> = [<span class="lang-string">"1"</span>, <span class="lang-string">"2"</span>, <span class="lang-string">"3"</span>]
         \\
@@ -316,4 +353,36 @@ test "vim" {
         \\
     ;
     try th.expectCodeHighlight(.vim, input, output);
+}
+
+test "yaml" {
+    const input =
+        \\key: value # : is separator
+        \\list:
+        \\  - val1
+        \\  - val2
+        \\  - val3 # inline comment
+        \\# comment
+        \\nested:
+        \\  - values: |
+        \\      hello
+        \\      world
+        \\  # comment
+        \\
+    ;
+    const output =
+        \\<span class="lang-attr">key:</span><span class="lang-string"> value </span><span class="lang-comment"># : is separator</span>
+        \\<span class="lang-attr">list:</span>
+        \\  - <span class="lang-string">val1</span>
+        \\  - <span class="lang-string">val2</span>
+        \\  - <span class="lang-string">val3 </span><span class="lang-comment"># inline comment</span>
+        \\<span class="lang-comment"># comment</span>
+        \\<span class="lang-attr">nested:</span>
+        \\<span class="lang-attr">  - values:</span><span class="lang-string"> |</span>
+        \\      <span class="lang-string">hello</span>
+        \\      <span class="lang-string">world</span>
+        \\  <span class="lang-comment"># comment</span>
+        \\
+    ;
+    try th.expectCodeHighlight(.yaml, input, output);
 }
