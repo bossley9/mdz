@@ -11,7 +11,11 @@ await Deno.copyFile(`${in_dir}/index.d.ts`, `${out_dir}/index.d.ts`);
 const src = (await Deno.readTextFile(`${in_dir}/index.js`))
   .replace(/\/\/.*/g, ""); // remove line comments
 const wasmBuf = await Deno.readFile("./zig-out/bin/mdz.wasm");
-const wasmStr = String.fromCharCode.apply(null, [...wasmBuf]);
+let wasmStr = "";
+for (const byte of wasmBuf) {
+  // cannot apply entire buffer at once or call stack is exceeded
+  wasmStr += String.fromCharCode(byte);
+}
 const wasm = btoa(wasmStr);
 
 const output = src.substring(0, src.indexOf(marker)) +

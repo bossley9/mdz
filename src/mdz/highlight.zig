@@ -18,6 +18,7 @@ const SyntaxGroup = enum {
     section,
     string_single,
     string_double,
+    string_template,
     type,
 };
 
@@ -38,7 +39,7 @@ fn writeKeywordIfExists(
     w: *Io.Writer,
     line: []u8,
     i: *usize,
-    kind: enum { builtin, keyword, literal, type },
+    kind: enum { builtin, function, keyword, literal, type },
     keyword: []const u8,
 ) Io.Writer.Error!usize {
     var len: usize = 0;
@@ -51,6 +52,7 @@ fn writeKeywordIfExists(
     i.* += keyword.len;
     len += try w.write(switch (kind) {
         .builtin => "<span class=\"lang-built_in\">",
+        .function => "<span class=\"lang-title\">",
         .keyword => "<span class=\"lang-keyword\">",
         .literal => "<span class=\"lang-literal\">",
         .type => "<span class=\"lang-type\">",
@@ -74,7 +76,7 @@ fn changeSyntaxGroup(w: *Io.Writer, current_group: *SyntaxGroup, new_group: Synt
         .number => try w.write("<span class=\"lang-number\">"),
         .plain => try w.write("</span>"),
         .section => try w.write("<span class=\"lang-section\">"),
-        .string_single, .string_double => try w.write("<span class=\"lang-string\">"),
+        .string_single, .string_double, .string_template => try w.write("<span class=\"lang-string\">"),
         .type => try w.write("<span class=\"lang-type\">"),
     };
 }
@@ -167,7 +169,7 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     }
                 }
             },
-            .js, .ts => {
+            .js, .jsx, .ts, .tsx => {
                 if (group == .plain) {
                     if (lookAheadHas(line, i, "//")) {
                         len += try changeSyntaxGroup(w, &group, .comment);
@@ -177,6 +179,9 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                         group_index = i;
                     } else if (line[i] == '"') {
                         len += try changeSyntaxGroup(w, &group, .string_double);
+                        group_index = i;
+                    } else if (line[i] == '`') {
+                        len += try changeSyntaxGroup(w, &group, .string_template);
                         group_index = i;
                     } else if ((i == 0 or !std.ascii.isAlphanumeric(line[i - 1])) and std.ascii.isDigit(line[i])) {
                         len += try changeSyntaxGroup(w, &group, .number);
@@ -215,6 +220,7 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                         len += try writeKeywordIfExists(w, line, &i, .keyword, "this");
                         len += try writeKeywordIfExists(w, line, &i, .keyword, "throw");
                         len += try writeKeywordIfExists(w, line, &i, .keyword, "try");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "type");
                         len += try writeKeywordIfExists(w, line, &i, .keyword, "typeof");
                         len += try writeKeywordIfExists(w, line, &i, .keyword, "using");
                         len += try writeKeywordIfExists(w, line, &i, .keyword, "var");
@@ -233,11 +239,28 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                         len += try writeKeywordIfExists(w, line, &i, .literal, "true");
                         len += try writeKeywordIfExists(w, line, &i, .literal, "window");
 
+                        len += try writeKeywordIfExists(w, line, &i, .function, "Boolean");
+                        len += try writeKeywordIfExists(w, line, &i, .function, "Number");
+                        len += try writeKeywordIfExists(w, line, &i, .function, "Promise");
+                        len += try writeKeywordIfExists(w, line, &i, .function, "String");
+
+                        len += try writeKeywordIfExists(w, line, &i, .type, "Awaited");
                         len += try writeKeywordIfExists(w, line, &i, .type, "any");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "as");
                         len += try writeKeywordIfExists(w, line, &i, .type, "boolean");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "is");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "NonNullable");
                         len += try writeKeywordIfExists(w, line, &i, .type, "never");
                         len += try writeKeywordIfExists(w, line, &i, .type, "number");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "Omit");
                         len += try writeKeywordIfExists(w, line, &i, .type, "object");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "Parameters");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "Partial");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "Pick");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "Record");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "Required");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "ReturnType");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "readonly");
                         len += try writeKeywordIfExists(w, line, &i, .type, "string");
                         len += try writeKeywordIfExists(w, line, &i, .type, "unknown");
 
@@ -255,6 +278,8 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     if (group == .string_single and lookBehindHas(line, i, "'") and !lookBehindHas(line, i, "\\'")) {
                         len += try changeSyntaxGroup(w, &group, .plain);
                     } else if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    } else if (group == .string_template and lookBehindHas(line, i, "`") and !lookBehindHas(line, i, "\\`")) {
                         len += try changeSyntaxGroup(w, &group, .plain);
                     }
                 }
@@ -742,7 +767,7 @@ test "ini" {
     try th.expectCodeHighlight(.ini, input, output);
 }
 
-test "js, ts" {
+test "js, jsx, ts, tsx" {
     const input =
         \\import { myMod } from 'mod';
         \\// comment
@@ -751,7 +776,7 @@ test "js, ts" {
         \\export function useVal() {
         \\  return useQuery({
         \\    queryKey: [ 'val' ],
-        \\    queryFn: () => fetch('api/' + 4),
+        \\    queryFn: () => fetch(`api/${4}`),
         \\  })
         \\}
         \\
@@ -771,12 +796,12 @@ test "js, ts" {
     const output =
         \\<span class="lang-keyword">import</span> { myMod } <span class="lang-keyword">from</span> <span class="lang-string">'mod'</span>;
         \\<span class="lang-comment">// comment</span>
-        \\<span class="lang-keyword">const</span> x = Number(<span class="lang-string">"34"</span>);
+        \\<span class="lang-keyword">const</span> x = <span class="lang-title">Number</span>(<span class="lang-string">"34"</span>);
         \\
         \\<span class="lang-keyword">export</span> <span class="lang-keyword">function</span> <span class="lang-title">useVal</span>() {
         \\  <span class="lang-keyword">return</span> useQuery({
         \\    queryKey: [ <span class="lang-string">'val'</span> ],
-        \\    queryFn: () =&gt; fetch(<span class="lang-string">'api/'</span> + <span class="lang-number">4</span>),
+        \\    queryFn: () =&gt; fetch(<span class="lang-string">`api/${4}`</span>),
         \\  })
         \\}
         \\
@@ -794,7 +819,9 @@ test "js, ts" {
         \\
     ;
     try th.expectCodeHighlight(.js, input, output);
+    try th.expectCodeHighlight(.jsx, input, output);
     try th.expectCodeHighlight(.ts, input, output);
+    try th.expectCodeHighlight(.tsx, input, output);
 }
 
 test "json" {

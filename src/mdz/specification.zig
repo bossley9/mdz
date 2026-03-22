@@ -189,7 +189,7 @@ test "2.3.5" {
 // ```zig
 test "2.3.6" {
     const input =
-        \\```zig
+        \\```
         \\const str =
         \\  \\hello,
         \\  \\world!
@@ -197,7 +197,7 @@ test "2.3.6" {
         \\```
     ;
     const output =
-        \\<pre><code class="language-zig">const str =
+        \\<pre><code>const str =
         \\  \\hello,
         \\  \\world!
         \\;
