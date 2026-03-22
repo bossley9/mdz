@@ -8,6 +8,7 @@ const Io = std.Io;
 const SyntaxGroup = enum {
     addition,
     attr,
+    boolean,
     comment,
     deletion,
     meta,
@@ -16,6 +17,7 @@ const SyntaxGroup = enum {
     section,
     string_single,
     string_double,
+    type,
 };
 
 /// Return true if the characters ahead match the pattern.
@@ -31,7 +33,13 @@ fn lookBehindHas(line: []u8, i: usize, pattern: []const u8) bool {
 }
 
 /// Format and print keyword if it exists.
-fn writeKeywordIfExists(w: *Io.Writer, line: []u8, i: *usize, kind: enum { keyword, builtin }, keyword: []const u8) Io.Writer.Error!usize {
+fn writeKeywordIfExists(
+    w: *Io.Writer,
+    line: []u8,
+    i: *usize,
+    kind: enum { boolean, builtin, keyword, type },
+    keyword: []const u8,
+) Io.Writer.Error!usize {
     var len: usize = 0;
     const does_start_match = i.* == 0 or !std.ascii.isAlphanumeric(line[i.* - 1]);
     if (!does_start_match) return len;
@@ -40,7 +48,12 @@ fn writeKeywordIfExists(w: *Io.Writer, line: []u8, i: *usize, kind: enum { keywo
     if (!does_end_match) return len;
 
     i.* += keyword.len;
-    len += try w.write(if (kind == .builtin) "<span class=\"lang-builtin\">" else "<span class=\"lang-keyword\">");
+    len += try w.write(switch (kind) {
+        .boolean => "<span class=\"lang-boolean\">",
+        .builtin => "<span class=\"lang-builtin\">",
+        .keyword => "<span class=\"lang-keyword\">",
+        .type => "<span class=\"lang-type\">",
+    });
     len += try w.write(keyword);
     len += try w.write("</span>");
 
@@ -52,6 +65,7 @@ fn changeSyntaxGroup(w: *Io.Writer, current_group: *SyntaxGroup, new_group: Synt
     return switch (new_group) {
         .addition => try w.write("<span class=\"lang-addition\">"),
         .attr => try w.write("<span class=\"lang-attr\">"),
+        .boolean => try w.write("<span class=\"lang-boolean\">"),
         .comment => try w.write("<span class=\"lang-comment\">"),
         .deletion => try w.write("<span class=\"lang-deletion\">"),
         .meta => try w.write("<span class=\"lang-meta\">"),
@@ -59,6 +73,7 @@ fn changeSyntaxGroup(w: *Io.Writer, current_group: *SyntaxGroup, new_group: Synt
         .plain => try w.write("</span>"),
         .section => try w.write("<span class=\"lang-section\">"),
         .string_single, .string_double => try w.write("<span class=\"lang-string\">"),
+        .type => try w.write("<span class=\"lang-type\">"),
     };
 }
 
@@ -282,6 +297,237 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                         len += try changeSyntaxGroup(w, &group, .plain);
                         len += try changeSyntaxGroup(w, &group, .string_single);
                         group_index = i;
+                    }
+                }
+            },
+            .zig => {
+                if (group == .plain) {
+                    if (lookAheadHas(line, i, "//")) {
+                        len += try changeSyntaxGroup(w, &group, .comment);
+                        group_index = i;
+                    } else if (line[i] == '\'') {
+                        len += try changeSyntaxGroup(w, &group, .string_single);
+                        group_index = i;
+                    } else if (line[i] == '"') {
+                        len += try changeSyntaxGroup(w, &group, .string_double);
+                        group_index = i;
+                    } else {
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "addrspace");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "align");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "allowzero");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "and");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "anyframe");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "anytype");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "asm");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "break");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "callconv");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "catch");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "comptime");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "const");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "continue");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "defer");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "else");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "enum");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "errdefer");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "error");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "export");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "extern");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "fn");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "for");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "if");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "inline");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "noalias");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "nosuspend");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "noinline");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "opaque");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "or");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "orelse");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "packed");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "pub");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "resume");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "return");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "linksection");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "struct");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "suspend");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "switch");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "test");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "threadlocal");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "try");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "union");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "unreachable");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "var");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "volatile");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "while");
+
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@addrSpaceCast");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@addWithOverflow");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@alignCast");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@alignOf");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@as");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@atomicLoad");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@atomicRmw");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@atomicStore");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@bitCast");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@bitOffsetOf");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@bitSizeOf");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@branchHint");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@breakpoint");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@mulAdd");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@byteSwap");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@bitReverse");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@offsetOf");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@call");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cDefine");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cImport");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cInclude");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@clz");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cmpxchgStrong");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cmpxchgWeak");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@compileError");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@compileLog");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@constCast");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@ctz");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cUndef");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cVaArg");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cVaCopy");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cVaEnd");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cVaStart");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@divExact");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@divFloor");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@divTrunc");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@embedFile");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@enumFromInt");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@errorFromInt");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@errorName");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@errorReturnTrace");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@errorCast");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@export");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@extern");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@field");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@fieldParentPtr");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@FieldType");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@floatCast");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@floatFromInt");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@frameAddress");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@hasDecl");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@hasField");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@import");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@inComptime");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@intCast");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@intFromBool");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@intFromEnum");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@intFromError");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@intFromFloat");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@intFromPtr");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@max");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@memcpy");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@memset");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@memmove");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@min");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@wasmMemorySize");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@wasmMemoryGrow");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@mod");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@mulWithOverflow");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@panic");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@popCount");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@prefetch");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@ptrCast");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@ptrFromInt");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@rem");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@returnAddress");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@select");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@setEvalBranchQuota");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@setFloatMode");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@setRuntimeSafety");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@shlExact");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@shlWithOverflow");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@shrExact");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@shuffle");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@sizeOf");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@splat");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@reduce");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@src");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@sqrt");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@sin");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cos");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@tan");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@exp");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@exp2");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@log");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@log2");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@log10");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@abs");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@floor");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@ceil");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@trunc");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@round");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@subWithOverflow");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@tagName");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@This");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@trap");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@truncate");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@EnumLiteral");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@Int");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@Tuple");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@Pointer");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@Fn");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@Struct");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@Union");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@Enum");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@typeInfo");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@typeName");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@TypeOf");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@unionInit");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@Vector");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@volatileCast");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@workGroupId");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@workGroupSize");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@workItemId");
+
+                        len += try writeKeywordIfExists(w, line, &i, .boolean, "false");
+                        len += try writeKeywordIfExists(w, line, &i, .boolean, "true");
+
+                        len += try writeKeywordIfExists(w, line, &i, .type, "bool");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "isize");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "usize");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "void");
+
+                        if (i < line.len and i == 0 or !std.ascii.isAlphanumeric(line[i - 1])) {
+                            // custom numerical types
+                            if ((line[i] == 'u' or line[i] == 'i') and
+                                i + 1 < line.len and std.ascii.isDigit(line[i + 1]))
+                            {
+                                len += try changeSyntaxGroup(w, &group, .type);
+                                group_index = i;
+
+                                try w.writeByte(line[i]);
+                                len += 1;
+                                i += 1;
+                                while (i < line.len and std.ascii.isDigit(line[i])) : (i += 1) {
+                                    len += try parser.printEscapedHtml(line[i], w);
+                                }
+                                len += try changeSyntaxGroup(w, &group, .plain);
+                            }
+
+                            if (std.ascii.isDigit(line[i])) {
+                                len += try changeSyntaxGroup(w, &group, .number);
+                                group_index = i;
+                            }
+                        }
+
+                        if (i >= line.len) break;
+                    }
+                } else if (group == .number and !std.ascii.isDigit(line[i]) and line[i] != '.') {
+                    len += try changeSyntaxGroup(w, &group, .plain);
+                }
+
+                len += try parser.printEscapedHtml(line[i], w);
+
+                if (i != group_index) {
+                    if (group == .string_single and lookBehindHas(line, i, "'") and !lookBehindHas(line, i, "\\'")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    } else if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
                     }
                 }
             },
@@ -517,4 +763,74 @@ test "yaml" {
         \\
     ;
     try th.expectCodeHighlight(.yaml, input, output);
+}
+
+test "zig" {
+    const input =
+        \\//! doc comment
+        \\
+        \\/// does something cool
+        \\fn doSomething(r: *Reader) Reader.DelimiterError![]u8 {
+        \\    const result = r.peekDelimiterInclusive('\n') catch |err| switch (err) {
+        \\        Reader.DelimiterError.EndOfStream, Reader.DelimiterError.StreamTooLong => {
+        \\            const remaining = r.buffer[r.seek..r.end]; // inline
+        \\            if (remaining.len == 0) return error.EndOfStream;
+        \\            r.toss(remaining.len);
+        \\            return remaining;
+        \\        },
+        \\        else => |e| return e,
+        \\    };
+        \\    r.toss(result.len);
+        \\    var j: isize = 1;
+        \\    var k: i7 = 0;
+        \\    const is_programming = true;
+        \\
+        \\    if (result.len > 1 and result[result.len - 2] == '\r') {
+        \\        @branchHint(.cold);
+        \\        return result[0 .. result.len - 2];
+        \\    }
+        \\
+        \\    var i: usize = 0;
+        \\    while (i < 3): (i += 1) {
+        \\        std.log.debug("Hello", .{});
+        \\    }
+        \\
+        \\    return result[0 .. result.len - 1];
+        \\}
+        \\
+    ;
+    const output =
+        \\<span class="lang-comment">//! doc comment</span>
+        \\
+        \\<span class="lang-comment">/// does something cool</span>
+        \\<span class="lang-keyword">fn</span> doSomething(r: *Reader) Reader.DelimiterError![]<span class="lang-type">u8</span> {
+        \\    <span class="lang-keyword">const</span> result = r.peekDelimiterInclusive(<span class="lang-string">'\n'</span>) <span class="lang-keyword">catch</span> |err| <span class="lang-keyword">switch</span> (err) {
+        \\        Reader.DelimiterError.EndOfStream, Reader.DelimiterError.StreamTooLong =&gt; {
+        \\            <span class="lang-keyword">const</span> remaining = r.buffer[r.seek..r.end]; <span class="lang-comment">// inline</span>
+        \\            <span class="lang-keyword">if</span> (remaining.len == <span class="lang-number">0</span>) <span class="lang-keyword">return</span> <span class="lang-keyword">error</span>.EndOfStream;
+        \\            r.toss(remaining.len);
+        \\            <span class="lang-keyword">return</span> remaining;
+        \\        },
+        \\        <span class="lang-keyword">else</span> =&gt; |e| <span class="lang-keyword">return</span> e,
+        \\    };
+        \\    r.toss(result.len);
+        \\    <span class="lang-keyword">var</span> j: <span class="lang-type">isize</span> = <span class="lang-number">1</span>;
+        \\    <span class="lang-keyword">var</span> k: <span class="lang-type">i7</span> = <span class="lang-number">0</span>;
+        \\    <span class="lang-keyword">const</span> is_programming = <span class="lang-boolean">true</span>;
+        \\
+        \\    <span class="lang-keyword">if</span> (result.len &gt; <span class="lang-number">1</span> <span class="lang-keyword">and</span> result[result.len - <span class="lang-number">2</span>] == <span class="lang-string">'\r'</span>) {
+        \\        <span class="lang-builtin">@branchHint</span>(.cold);
+        \\        <span class="lang-keyword">return</span> result[<span class="lang-number">0</span> .. result.len - <span class="lang-number">2</span>];
+        \\    }
+        \\
+        \\    <span class="lang-keyword">var</span> i: <span class="lang-type">usize</span> = <span class="lang-number">0</span>;
+        \\    <span class="lang-keyword">while</span> (i &lt; <span class="lang-number">3</span>): (i += <span class="lang-number">1</span>) {
+        \\        std.log.debug(<span class="lang-string">"Hello"</span>, .{});
+        \\    }
+        \\
+        \\    <span class="lang-keyword">return</span> result[<span class="lang-number">0</span> .. result.len - <span class="lang-number">1</span>];
+        \\}
+        \\
+    ;
+    try th.expectCodeHighlight(.zig, input, output);
 }
