@@ -35,6 +35,7 @@ pub const CodeLanguage = enum {
     css,
     diff,
     go,
+    html,
     ini,
     js,
     json,

@@ -18,7 +18,9 @@ const SyntaxGroup = enum {
     section,
     string_single,
     string_double,
+    string_tag,
     string_template,
+    tag,
     type,
 };
 
@@ -76,7 +78,8 @@ fn changeSyntaxGroup(w: *Io.Writer, current_group: *SyntaxGroup, new_group: Synt
         .number => try w.write("<span class=\"lang-number\">"),
         .plain => try w.write("</span>"),
         .section => try w.write("<span class=\"lang-section\">"),
-        .string_single, .string_double, .string_template => try w.write("<span class=\"lang-string\">"),
+        .string_single, .string_double, .string_tag, .string_template => try w.write("<span class=\"lang-string\">"),
+        .tag => try w.write("<span class=\"lang-tag\">"),
         .type => try w.write("<span class=\"lang-type\">"),
     };
 }
@@ -91,6 +94,7 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
 
     const has_colon = (std.mem.indexOfScalar(u8, line, ':') orelse 0) > 0;
     const has_bracket = lang == .css and (std.mem.indexOfScalar(u8, line, '{') orelse 0) > 0;
+    var in_tag = false;
     var num_spaces: usize = 0;
 
     while (i < line.len) : (i += 1) {
@@ -173,6 +177,54 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                 len += try parser.printEscapedHtml(line[i], w);
                 if (i != group_index) {
                     if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    }
+                }
+            },
+            .html => {
+                if (group == .plain) {
+                    if (lookAheadHas(line, i, "<!--")) {
+                        len += try changeSyntaxGroup(w, &group, .comment);
+                        group_index = i;
+                    } else if (line[i] == '<') {
+                        len += try parser.printEscapedHtml(line[i], w);
+                        i += 1;
+
+                        if (i < line.len and line[i] == '/') {
+                            len += try parser.printEscapedHtml(line[i], w);
+                            i += 1;
+                        }
+
+                        in_tag = true;
+                        len += try changeSyntaxGroup(w, &group, .tag);
+                        group_index = i;
+                    } else if (in_tag and line[i] == '"') {
+                        len += try changeSyntaxGroup(w, &group, .string_double);
+                        group_index = i;
+                    } else if (in_tag and i > 0 and line[i - 1] == '=') {
+                        len += try changeSyntaxGroup(w, &group, .string_tag);
+                        group_index = i;
+                    } else if (in_tag and std.ascii.isAlphabetic(line[i])) {
+                        len += try changeSyntaxGroup(w, &group, .attr);
+                        group_index = i;
+                    }
+                } else if (group == .tag or group == .string_tag) {
+                    if (line[i] == '>') {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                        in_tag = false;
+                    } else if (line[i] == ' ') {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    }
+                } else if (group == .attr) {
+                    if (line[i] == '=' or line[i] == ' ') {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    }
+                }
+                len += try parser.printEscapedHtml(line[i], w);
+                if (i != group_index) {
+                    if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    } else if (group == .comment and lookBehindHas(line, i, "-->")) {
                         len += try changeSyntaxGroup(w, &group, .plain);
                     }
                 }
@@ -843,6 +895,44 @@ test "go" {
         \\
     ;
     try th.expectCodeHighlight(.go, input, output);
+}
+
+test "html" {
+    const input =
+        \\<h1 class="test data" data-selected id=123>Title</h1>
+        \\<style>
+        \\  div {
+        \\    background: red;
+        \\  }
+        \\</style>
+        \\<!-- html comment --><span>content</span>
+        \\<div>
+        \\  <web-component></web-component>
+        \\  <div>
+        \\    <p>Hello</p>
+        \\    <p>World</p>
+        \\  </div>
+        \\</div>
+        \\
+    ;
+    const output =
+        \\&lt;<span class="lang-tag">h1</span> <span class="lang-attr">class</span>=<span class="lang-string">"test data"</span> <span class="lang-attr">data-selected</span> <span class="lang-attr">id</span>=<span class="lang-string">123</span>&gt;Title&lt;/<span class="lang-tag">h1</span>&gt;
+        \\&lt;<span class="lang-tag">style</span>&gt;
+        \\  div {
+        \\    background: red;
+        \\  }
+        \\&lt;/<span class="lang-tag">style</span>&gt;
+        \\<span class="lang-comment">&lt;!-- html comment --&gt;</span>&lt;<span class="lang-tag">span</span>&gt;content&lt;/<span class="lang-tag">span</span>&gt;
+        \\&lt;<span class="lang-tag">div</span>&gt;
+        \\  &lt;<span class="lang-tag">web-component</span>&gt;&lt;/<span class="lang-tag">web-component</span>&gt;
+        \\  &lt;<span class="lang-tag">div</span>&gt;
+        \\    &lt;<span class="lang-tag">p</span>&gt;Hello&lt;/<span class="lang-tag">p</span>&gt;
+        \\    &lt;<span class="lang-tag">p</span>&gt;World&lt;/<span class="lang-tag">p</span>&gt;
+        \\  &lt;/<span class="lang-tag">div</span>&gt;
+        \\&lt;/<span class="lang-tag">div</span>&gt;
+        \\
+    ;
+    try th.expectCodeHighlight(.html, input, output);
 }
 
 test "ini" {
