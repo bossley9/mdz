@@ -8,9 +8,10 @@ const Io = std.Io;
 const SyntaxGroup = enum {
     addition,
     attr,
-    boolean,
+    literal,
     comment,
     deletion,
+    function,
     meta,
     number,
     plain,
@@ -37,7 +38,7 @@ fn writeKeywordIfExists(
     w: *Io.Writer,
     line: []u8,
     i: *usize,
-    kind: enum { boolean, builtin, keyword, type },
+    kind: enum { builtin, keyword, literal, type },
     keyword: []const u8,
 ) Io.Writer.Error!usize {
     var len: usize = 0;
@@ -49,9 +50,9 @@ fn writeKeywordIfExists(
 
     i.* += keyword.len;
     len += try w.write(switch (kind) {
-        .boolean => "<span class=\"lang-boolean\">",
-        .builtin => "<span class=\"lang-builtin\">",
+        .builtin => "<span class=\"lang-built_in\">",
         .keyword => "<span class=\"lang-keyword\">",
+        .literal => "<span class=\"lang-literal\">",
         .type => "<span class=\"lang-type\">",
     });
     len += try w.write(keyword);
@@ -65,9 +66,10 @@ fn changeSyntaxGroup(w: *Io.Writer, current_group: *SyntaxGroup, new_group: Synt
     return switch (new_group) {
         .addition => try w.write("<span class=\"lang-addition\">"),
         .attr => try w.write("<span class=\"lang-attr\">"),
-        .boolean => try w.write("<span class=\"lang-boolean\">"),
         .comment => try w.write("<span class=\"lang-comment\">"),
         .deletion => try w.write("<span class=\"lang-deletion\">"),
+        .function => try w.write("<span class=\"lang-title\">"),
+        .literal => try w.write("<span class=\"lang-literal\">"),
         .meta => try w.write("<span class=\"lang-meta\">"),
         .number => try w.write("<span class=\"lang-number\">"),
         .plain => try w.write("</span>"),
@@ -161,6 +163,98 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
 
                 if (i != group_index) {
                     if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    }
+                }
+            },
+            .js, .ts => {
+                if (group == .plain) {
+                    if (lookAheadHas(line, i, "//")) {
+                        len += try changeSyntaxGroup(w, &group, .comment);
+                        group_index = i;
+                    } else if (line[i] == '\'') {
+                        len += try changeSyntaxGroup(w, &group, .string_single);
+                        group_index = i;
+                    } else if (line[i] == '"') {
+                        len += try changeSyntaxGroup(w, &group, .string_double);
+                        group_index = i;
+                    } else if ((i == 0 or !std.ascii.isAlphanumeric(line[i - 1])) and std.ascii.isDigit(line[i])) {
+                        len += try changeSyntaxGroup(w, &group, .number);
+                        group_index = i;
+                    } else if (std.ascii.isAlphabetic(line[i]) and i >= 9 and std.mem.eql(u8, line[i - 9 .. i], "function ")) {
+                        len += try changeSyntaxGroup(w, &group, .function);
+                        group_index = i;
+                    } else {
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "async");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "await");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "break");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "catch");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "class");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "const");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "constructor");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "continue");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "delete");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "do");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "else");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "export");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "extends");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "for");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "function");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "from");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "if");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "import");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "in");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "instanceof");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "let");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "new");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "of");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "return");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "static");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "super");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "switch");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "this");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "throw");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "try");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "typeof");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "using");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "var");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "void");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "while");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "with");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "yield");
+
+                        len += try writeKeywordIfExists(w, line, &i, .literal, "document");
+                        len += try writeKeywordIfExists(w, line, &i, .literal, "false");
+                        len += try writeKeywordIfExists(w, line, &i, .literal, "globalThis");
+                        len += try writeKeywordIfExists(w, line, &i, .literal, "Infinity");
+                        len += try writeKeywordIfExists(w, line, &i, .literal, "NaN");
+                        len += try writeKeywordIfExists(w, line, &i, .literal, "null");
+                        len += try writeKeywordIfExists(w, line, &i, .literal, "undefined");
+                        len += try writeKeywordIfExists(w, line, &i, .literal, "true");
+                        len += try writeKeywordIfExists(w, line, &i, .literal, "window");
+
+                        len += try writeKeywordIfExists(w, line, &i, .type, "any");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "boolean");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "never");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "number");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "object");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "string");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "unknown");
+
+                        if (i >= line.len) break;
+                    }
+                } else if (group == .number and !std.ascii.isDigit(line[i]) and line[i] != '.') {
+                    len += try changeSyntaxGroup(w, &group, .plain);
+                } else if (group == .function and line[i] == '(') {
+                    len += try changeSyntaxGroup(w, &group, .plain);
+                }
+
+                len += try parser.printEscapedHtml(line[i], w);
+
+                if (i != group_index) {
+                    if (group == .string_single and lookBehindHas(line, i, "'") and !lookBehindHas(line, i, "\\'")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    } else if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
                         len += try changeSyntaxGroup(w, &group, .plain);
                     }
                 }
@@ -310,6 +404,9 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                         group_index = i;
                     } else if (line[i] == '"') {
                         len += try changeSyntaxGroup(w, &group, .string_double);
+                        group_index = i;
+                    } else if (std.ascii.isAlphabetic(line[i]) and i >= 3 and std.mem.eql(u8, line[i - 3 .. i], "fn ")) {
+                        len += try changeSyntaxGroup(w, &group, .function);
                         group_index = i;
                     } else {
                         len += try writeKeywordIfExists(w, line, &i, .keyword, "addrspace");
@@ -484,8 +581,8 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                         len += try writeKeywordIfExists(w, line, &i, .builtin, "@workGroupSize");
                         len += try writeKeywordIfExists(w, line, &i, .builtin, "@workItemId");
 
-                        len += try writeKeywordIfExists(w, line, &i, .boolean, "false");
-                        len += try writeKeywordIfExists(w, line, &i, .boolean, "true");
+                        len += try writeKeywordIfExists(w, line, &i, .literal, "false");
+                        len += try writeKeywordIfExists(w, line, &i, .literal, "true");
 
                         len += try writeKeywordIfExists(w, line, &i, .type, "bool");
                         len += try writeKeywordIfExists(w, line, &i, .type, "isize");
@@ -519,6 +616,8 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     }
                 } else if (group == .number and !std.ascii.isDigit(line[i]) and line[i] != '.') {
                     len += try changeSyntaxGroup(w, &group, .plain);
+                } else if (group == .function and line[i] == '(') {
+                    len += try changeSyntaxGroup(w, &group, .plain);
                 }
 
                 len += try parser.printEscapedHtml(line[i], w);
@@ -551,8 +650,8 @@ test "crontab" {
     ;
     const output =
         \\<span class="lang-comment"># this is a good cronjob</span>
-        \\<span class="lang-section">*/5 * */2 * *</span> <span class="lang-builtin">rm</span> -r /home/sam <span class="lang-comment"># inline comment</span>
-        \\<span class="lang-section">* * * * *</span> <span class="lang-builtin">echo</span> hello
+        \\<span class="lang-section">*/5 * */2 * *</span> <span class="lang-built_in">rm</span> -r /home/sam <span class="lang-comment"># inline comment</span>
+        \\<span class="lang-section">* * * * *</span> <span class="lang-built_in">echo</span> hello
         \\
     ;
     try th.expectCodeHighlight(.crontab, input, output);
@@ -643,6 +742,61 @@ test "ini" {
     try th.expectCodeHighlight(.ini, input, output);
 }
 
+test "js, ts" {
+    const input =
+        \\import { myMod } from 'mod';
+        \\// comment
+        \\const x = Number("34");
+        \\
+        \\export function useVal() {
+        \\  return useQuery({
+        \\    queryKey: [ 'val' ],
+        \\    queryFn: () => fetch('api/' + 4),
+        \\  })
+        \\}
+        \\
+        \\function hello() {
+        \\    return null;
+        \\}
+        \\
+        \\let y2 = false;
+        \\while (!y2) {
+        \\    x++;
+        \\    if (x === undefined || x === null || x > 70) {
+        \\        y2 = true;
+        \\    }
+        \\}
+        \\
+    ;
+    const output =
+        \\<span class="lang-keyword">import</span> { myMod } <span class="lang-keyword">from</span> <span class="lang-string">'mod'</span>;
+        \\<span class="lang-comment">// comment</span>
+        \\<span class="lang-keyword">const</span> x = Number(<span class="lang-string">"34"</span>);
+        \\
+        \\<span class="lang-keyword">export</span> <span class="lang-keyword">function</span> <span class="lang-title">useVal</span>() {
+        \\  <span class="lang-keyword">return</span> useQuery({
+        \\    queryKey: [ <span class="lang-string">'val'</span> ],
+        \\    queryFn: () =&gt; fetch(<span class="lang-string">'api/'</span> + <span class="lang-number">4</span>),
+        \\  })
+        \\}
+        \\
+        \\<span class="lang-keyword">function</span> <span class="lang-title">hello</span>() {
+        \\    <span class="lang-keyword">return</span> <span class="lang-literal">null</span>;
+        \\}
+        \\
+        \\<span class="lang-keyword">let</span> y2 = <span class="lang-literal">false</span>;
+        \\<span class="lang-keyword">while</span> (!y2) {
+        \\    x++;
+        \\    <span class="lang-keyword">if</span> (x === <span class="lang-literal">undefined</span> || x === <span class="lang-literal">null</span> || x &gt; <span class="lang-number">70</span>) {
+        \\        y2 = <span class="lang-literal">true</span>;
+        \\    }
+        \\}
+        \\
+    ;
+    try th.expectCodeHighlight(.js, input, output);
+    try th.expectCodeHighlight(.ts, input, output);
+}
+
 test "json" {
     const input =
         \\{
@@ -697,12 +851,12 @@ test "sh" {
         \\<span class="lang-meta">#!/bin/sh</span>
         \\
         \\<span class="lang-comment"># comment</span>
-        \\<span class="lang-builtin">echo</span> <span class="lang-string">"Hello 'john'!"</span>
-        \\<span class="lang-builtin">echo</span> <span class="lang-string">'another \' string'</span> <span class="lang-comment"># trailing comment</span>
+        \\<span class="lang-built_in">echo</span> <span class="lang-string">"Hello 'john'!"</span>
+        \\<span class="lang-built_in">echo</span> <span class="lang-string">'another \' string'</span> <span class="lang-comment"># trailing comment</span>
         \\ifconfig
         \\
         \\<span class="lang-keyword">if</span> something; <span class="lang-keyword">then</span>
-        \\  <span class="lang-builtin">rm</span> -rf /
+        \\  <span class="lang-built_in">rm</span> -rf /
         \\<span class="lang-keyword">fi</span>
         \\
     ;
@@ -803,7 +957,7 @@ test "zig" {
         \\<span class="lang-comment">//! doc comment</span>
         \\
         \\<span class="lang-comment">/// does something cool</span>
-        \\<span class="lang-keyword">fn</span> doSomething(r: *Reader) Reader.DelimiterError![]<span class="lang-type">u8</span> {
+        \\<span class="lang-keyword">fn</span> <span class="lang-title">doSomething</span>(r: *Reader) Reader.DelimiterError![]<span class="lang-type">u8</span> {
         \\    <span class="lang-keyword">const</span> result = r.peekDelimiterInclusive(<span class="lang-string">'\n'</span>) <span class="lang-keyword">catch</span> |err| <span class="lang-keyword">switch</span> (err) {
         \\        Reader.DelimiterError.EndOfStream, Reader.DelimiterError.StreamTooLong =&gt; {
         \\            <span class="lang-keyword">const</span> remaining = r.buffer[r.seek..r.end]; <span class="lang-comment">// inline</span>
@@ -816,10 +970,10 @@ test "zig" {
         \\    r.toss(result.len);
         \\    <span class="lang-keyword">var</span> j: <span class="lang-type">isize</span> = <span class="lang-number">1</span>;
         \\    <span class="lang-keyword">var</span> k: <span class="lang-type">i7</span> = <span class="lang-number">0</span>;
-        \\    <span class="lang-keyword">const</span> is_programming = <span class="lang-boolean">true</span>;
+        \\    <span class="lang-keyword">const</span> is_programming = <span class="lang-literal">true</span>;
         \\
         \\    <span class="lang-keyword">if</span> (result.len &gt; <span class="lang-number">1</span> <span class="lang-keyword">and</span> result[result.len - <span class="lang-number">2</span>] == <span class="lang-string">'\r'</span>) {
-        \\        <span class="lang-builtin">@branchHint</span>(.cold);
+        \\        <span class="lang-built_in">@branchHint</span>(.cold);
         \\        <span class="lang-keyword">return</span> result[<span class="lang-number">0</span> .. result.len - <span class="lang-number">2</span>];
         \\    }
         \\

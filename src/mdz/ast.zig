@@ -40,6 +40,7 @@ pub const CodeLanguage = enum {
     patch,
     plaintext,
     sh,
+    ts,
     vim,
     yaml,
     zig,
