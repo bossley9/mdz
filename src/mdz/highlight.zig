@@ -133,6 +133,50 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     }
                 }
             },
+            .go => {
+                if (group == .plain) {
+                    if (lookAheadHas(line, i, "//")) {
+                        len += try changeSyntaxGroup(w, &group, .comment);
+                        group_index = i;
+                    } else if (line[i] == '"') {
+                        len += try changeSyntaxGroup(w, &group, .string_double);
+                        group_index = i;
+                    } else if (std.ascii.isAlphabetic(line[i]) and i >= 5 and std.mem.eql(u8, line[i - 5 .. i], "func ")) {
+                        len += try changeSyntaxGroup(w, &group, .function);
+                        group_index = i;
+                    } else {
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "append");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "make");
+
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "case");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "continue");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "defer");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "for");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "func");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "go");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "import");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "package");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "range");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "return");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "select");
+
+                        len += try writeKeywordIfExists(w, line, &i, .literal, "nil");
+
+                        len += try writeKeywordIfExists(w, line, &i, .type, "chan");
+                        len += try writeKeywordIfExists(w, line, &i, .type, "error");
+
+                        if (i >= line.len) break;
+                    }
+                } else if (group == .function and line[i] == '(') {
+                    len += try changeSyntaxGroup(w, &group, .plain);
+                }
+                len += try parser.printEscapedHtml(line[i], w);
+                if (i != group_index) {
+                    if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    }
+                }
+            },
             .ini => {
                 if (i == 0) {
                     if (line[i] == '[') {
@@ -655,7 +699,7 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     }
                 }
             },
-            else => len += try parser.printEscapedHtml(line[i], w),
+            .plaintext => len += try parser.printEscapedHtml(line[i], w),
         }
     }
 
@@ -745,6 +789,60 @@ test "diff, patch" {
     ;
     try th.expectCodeHighlight(.diff, input, output);
     try th.expectCodeHighlight(.patch, input, output);
+}
+
+test "go" {
+    const input =
+        \\package main
+        \\
+        \\import "fmt"
+        \\
+        \\// comment
+        \\func main() {
+        \\    arr := make([]string, 4)
+        \\    arr = append(arr, "Hello")
+        \\
+        \\    i := 1
+        \\    for i <= 3 {
+        \\        fmt.Println(i) // inline comment
+        \\        i = i + 1
+        \\    }
+        \\
+        \\    for n := range 6 {
+        \\        if n%2 == 0 {
+        \\            continue
+        \\        }
+        \\        fmt.Println(n)
+        \\    }
+        \\}
+        \\
+    ;
+    const output =
+        \\<span class="lang-keyword">package</span> main
+        \\
+        \\<span class="lang-keyword">import</span> <span class="lang-string">"fmt"</span>
+        \\
+        \\<span class="lang-comment">// comment</span>
+        \\<span class="lang-keyword">func</span> <span class="lang-title">main</span>() {
+        \\    arr := <span class="lang-built_in">make</span>([]string, 4)
+        \\    arr = <span class="lang-built_in">append</span>(arr, <span class="lang-string">"Hello"</span>)
+        \\
+        \\    i := 1
+        \\    <span class="lang-keyword">for</span> i &lt;= 3 {
+        \\        fmt.Println(i) <span class="lang-comment">// inline comment</span>
+        \\        i = i + 1
+        \\    }
+        \\
+        \\    <span class="lang-keyword">for</span> n := <span class="lang-keyword">range</span> 6 {
+        \\        if n%2 == 0 {
+        \\            <span class="lang-keyword">continue</span>
+        \\        }
+        \\        fmt.Println(n)
+        \\    }
+        \\}
+        \\
+    ;
+    try th.expectCodeHighlight(.go, input, output);
 }
 
 test "ini" {

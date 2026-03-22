@@ -34,6 +34,7 @@ pub const CodeLanguage = enum {
     crontab,
     css,
     diff,
+    go,
     ini,
     js,
     json,
