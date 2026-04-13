@@ -40,6 +40,7 @@ pub const CodeLanguage = enum {
     js,
     json,
     jsx,
+    lua,
     patch,
     plaintext,
     sh,

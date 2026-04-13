@@ -410,6 +410,46 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     }
                 }
             },
+            .lua => {
+                if (group == .plain) {
+                    if (lookAheadHas(line, i, "--")) {
+                        len += try changeSyntaxGroup(w, &group, .comment);
+                        group_index = i;
+                    } else if (line[i] == '"') {
+                        len += try changeSyntaxGroup(w, &group, .string_double);
+                        group_index = i;
+                    } else {
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "break");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "do");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "end");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "elsif");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "else");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "for");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "function");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "if");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "local");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "repeat");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "return");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "then");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "until");
+                        len += try writeKeywordIfExists(w, line, &i, .keyword, "while");
+
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "false");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "nil");
+                        len += try writeKeywordIfExists(w, line, &i, .builtin, "true");
+
+                        if (i >= line.len) break;
+                    }
+                }
+
+                len += try parser.printEscapedHtml(line[i], w);
+
+                if (i != group_index) {
+                    if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
+                        len += try changeSyntaxGroup(w, &group, .plain);
+                    }
+                }
+            },
             .sh, .crontab => {
                 if (i == 0 and lookAheadHas(line, i, "#!")) {
                     len += try changeSyntaxGroup(w, &group, .meta);
@@ -1046,6 +1086,34 @@ test "json" {
         \\
     ;
     try th.expectCodeHighlight(.json, input, output);
+}
+
+test "lua" {
+    const input =
+        \\-- this is a comment
+        \\local x = true -- inline comment
+        \\function()
+        \\  if x then
+        \\    print("hello, " .. "john")
+        \\    vim.fn.mkdir("test", "p")
+        \\    return 4
+        \\  end
+        \\end
+        \\
+    ;
+    const output =
+        \\<span class="lang-comment">-- this is a comment</span>
+        \\<span class="lang-keyword">local</span> x = <span class="lang-built_in">true</span> <span class="lang-comment">-- inline comment</span>
+        \\<span class="lang-keyword">function</span>()
+        \\  <span class="lang-keyword">if</span> x <span class="lang-keyword">then</span>
+        \\    print(<span class="lang-string">"hello, "</span> .. <span class="lang-string">"john"</span>)
+        \\    vim.fn.mkdir(<span class="lang-string">"test"</span>, <span class="lang-string">"p"</span>)
+        \\    <span class="lang-keyword">return</span> 4
+        \\  <span class="lang-keyword">end</span>
+        \\<span class="lang-keyword">end</span>
+        \\
+    ;
+    try th.expectCodeHighlight(.lua, input, output);
 }
 
 test "sh" {
