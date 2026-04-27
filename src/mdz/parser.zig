@@ -34,7 +34,10 @@ pub fn printEscapedHtml(c: u8, w: *Io.Writer) Io.Writer.Error!usize {
         '>' => w.write("&gt;"),
         '<' => w.write("&lt;"),
         '&' => w.write("&amp;"),
-        else => w.write(&.{c}),
+        else => {
+            try w.writeByte(c);
+            return 1;
+        },
     };
 }
 
@@ -149,7 +152,7 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
                     state.flags.is_link = true;
                     ref_index = i;
                     len += try w.write("<a href=\"");
-                    i = i + (std.mem.indexOf(u8, line[i..], "](") orelse return error.InvalidMDZSyntax) + 1;
+                    i = i + (std.mem.find(u8, line[i..], "](") orelse return error.InvalidMDZSyntax) + 1;
                 }
             },
             ')' => {
@@ -387,7 +390,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
                     while (line.len > 1) {
                         len += try w.write("<td>");
                         line = line[2..];
-                        const col_end = std.mem.indexOf(u8, line, " |") orelse return error.InvalidMDZSyntax;
+                        const col_end = std.mem.find(u8, line, " |") orelse return error.InvalidMDZSyntax;
                         len += try processInlines(line[0..col_end], w, state);
                         line = line[col_end + 1 ..];
                         len += try w.write("</td>\n");
@@ -460,7 +463,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
         while (line.len > 1) {
             len += try w.write("<th>");
             line = line[2..];
-            const col_end = std.mem.indexOf(u8, line, " |") orelse return error.InvalidMDZSyntax;
+            const col_end = std.mem.find(u8, line, " |") orelse return error.InvalidMDZSyntax;
             len += try processInlines(line[0..col_end], w, state);
             line = line[col_end + 1 ..];
             len += try w.write("</th>\n");

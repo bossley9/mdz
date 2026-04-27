@@ -16,10 +16,7 @@ const SyntaxGroup = enum {
     number,
     plain,
     section,
-    string_single,
-    string_double,
-    string_tag,
-    string_template,
+    string,
     tag,
     type,
 };
@@ -31,38 +28,45 @@ fn lookAheadHas(line: []u8, i: usize, pattern: []const u8) bool {
 }
 
 /// Return true if the characters behind match the pattern.
+/// Does not check if the pattern can exist.
 fn lookBehindHas(line: []u8, i: usize, pattern: []const u8) bool {
-    if (pattern.len > i) return false;
     return std.mem.eql(u8, line[i - pattern.len + 1 .. i + 1], pattern);
 }
+fn lookBehindHasUnescaped(line: []u8, i: usize, pattern: u8) bool {
+    return line[i - 1] != '\\' and line[i] == pattern;
+}
 
-/// Format and print keyword if it exists.
-fn writeKeywordIfExists(
+/// Format and print word if it exists. Otherwise, try next word.
+fn writeWordIfExists(
     w: *Io.Writer,
     line: []u8,
     i: *usize,
     kind: enum { builtin, function, keyword, literal, type },
-    keyword: []const u8,
+    words: [][]const u8,
 ) Io.Writer.Error!usize {
-    var len: usize = 0;
-    const does_start_match = i.* == 0 or !std.ascii.isAlphanumeric(line[i.* - 1]);
-    if (!does_start_match) return len;
-    if (!lookAheadHas(line, i.*, keyword)) return len;
-    const does_end_match = i.* + keyword.len == line.len or !std.ascii.isAlphanumeric(line[i.* + keyword.len]);
-    if (!does_end_match) return len;
+    // start does not match
+    if (i.* != 0 and std.ascii.isAlphanumeric(line[i.* - 1])) return 0;
 
-    i.* += keyword.len;
-    len += try w.write(switch (kind) {
-        .builtin => "<span class=\"lang-built_in\">",
-        .function => "<span class=\"lang-title\">",
-        .keyword => "<span class=\"lang-keyword\">",
-        .literal => "<span class=\"lang-literal\">",
-        .type => "<span class=\"lang-type\">",
-    });
-    len += try w.write(keyword);
-    len += try w.write("</span>");
+    for (words) |word| {
+        if (
+        // pattern does not match
+        !lookAheadHas(line, i.*, word) or
+            // end does not match
+            (i.* + word.len != line.len and std.ascii.isAlphanumeric(line[i.* + word.len]))) continue;
 
-    return len;
+        i.* += word.len;
+        const prefix = switch (kind) {
+            .builtin => "<span class=\"lang-built_in\">",
+            .function => "<span class=\"lang-title\">",
+            .keyword => "<span class=\"lang-keyword\">",
+            .literal => "<span class=\"lang-literal\">",
+            .type => "<span class=\"lang-type\">",
+        };
+        try w.print("{s}{s}</span>", .{ prefix, word });
+        return prefix.len + word.len + 7;
+    }
+    // no match found
+    return 0;
 }
 
 fn changeSyntaxGroup(w: *Io.Writer, current_group: *SyntaxGroup, new_group: SyntaxGroup) Io.Writer.Error!usize {
@@ -78,11 +82,33 @@ fn changeSyntaxGroup(w: *Io.Writer, current_group: *SyntaxGroup, new_group: Synt
         .number => try w.write("<span class=\"lang-number\">"),
         .plain => try w.write("</span>"),
         .section => try w.write("<span class=\"lang-section\">"),
-        .string_single, .string_double, .string_tag, .string_template => try w.write("<span class=\"lang-string\">"),
+        .string => try w.write("<span class=\"lang-string\">"),
         .tag => try w.write("<span class=\"lang-tag\">"),
         .type => try w.write("<span class=\"lang-type\">"),
     };
 }
+
+var go_builtins = [_][]const u8{ "append", "make" };
+var go_keywords = [_][]const u8{ "case", "continue", "defer", "for", "func", "go", "import", "package", "range", "return", "select" };
+var go_literals = [_][]const u8{"nil"};
+var go_types = [_][]const u8{ "chan", "error" };
+var js_functions = [_][]const u8{ "Boolean", "Number", "Promise", "String" };
+var js_keywords = [_][]const u8{ "async", "await", "break", "catch", "class", "const", "constructor", "continue", "delete", "do", "else", "export", "extends", "for", "function", "from", "if", "import", "in", "instanceof", "let", "new", "of", "return", "static", "super", "switch", "this", "throw", "try", "type", "typeof", "using", "var", "void", "while", "with", "yield" };
+var js_literals = [_][]const u8{ "document", "false", "globalThis", "Infinity", "NaN", "null", "undefined", "true", "window" };
+var js_types = [_][]const u8{ "Awaited", "any", "as", "boolean", "is", "NonNullable", "never", "number", "Omit", "object", "Parameters", "Partial", "Pick", "Record", "Required", "ReturnType", "readonly", "string", "unknown" };
+var lua_builtins = [_][]const u8{ "false", "nil", "true" };
+var lua_keywords = [_][]const u8{ "break", "do", "end", "elsif", "else", "for", "function", "if", "local", "repeat", "return", "then", "until", "while" };
+var sh_builtins = [_][]const u8{ "cd", "chgrp", "chmod", "chown", "cp", "echo", "mkdir", "mv", "printf", "rm" };
+var sh_keywords = [_][]const u8{ "fi", "if", "then" };
+var vim_keywords = [_][]const u8{ "let", "set" };
+var zig_builtins = [_][]const u8{ "@addrSpaceCast", "@addWithOverflow", "@alignCast", "@alignOf", "@as", "@atomicLoad", "@atomicRmw", "@atomicStore", "@bitCast", "@bitOffsetOf", "@bitSizeOf", "@branchHint", "@breakpoint", "@mulAdd", "@byteSwap", "@bitReverse", "@offsetOf", "@call", "@cDefine", "@cImport", "@cInclude", "@clz", "@cmpxchgStrong", "@cmpxchgWeak", "@compileError", "@compileLog", "@constCast", "@ctz", "@cUndef", "@cVaArg", "@cVaCopy", "@cVaEnd", "@cVaStart", "@divExact", "@divFloor", "@divTrunc", "@embedFile", "@enumFromInt", "@errorFromInt", "@errorName", "@errorReturnTrace", "@errorCast", "@export", "@extern", "@field", "@fieldParentPtr", "@FieldType", "@floatCast", "@floatFromInt", "@frameAddress", "@hasDecl", "@hasField", "@import", "@inComptime", "@intCast", "@intFromBool", "@intFromEnum", "@intFromError", "@intFromFloat", "@intFromPtr", "@max", "@memcpy", "@memset", "@memmove", "@min", "@wasmMemorySize", "@wasmMemoryGrow", "@mod", "@mulWithOverflow", "@panic", "@popCount", "@prefetch", "@ptrCast", "@ptrFromInt", "@rem", "@returnAddress", "@select", "@setEvalBranchQuota", "@setFloatMode", "@setRuntimeSafety", "@shlExact", "@shlWithOverflow", "@shrExact", "@shuffle", "@sizeOf", "@splat", "@reduce", "@src", "@sqrt", "@sin", "@cos", "@tan", "@exp", "@exp2", "@log", "@log2", "@log10", "@abs", "@floor", "@ceil", "@trunc", "@round", "@subWithOverflow", "@tagName", "@This", "@trap", "@truncate", "@EnumLiteral", "@Int", "@Tuple", "@Pointer", "@Fn", "@Struct", "@Union", "@Enum", "@typeInfo", "@typeName", "@TypeOf", "@unionInit", "@Vector", "@volatileCast", "@workGroupId", "@workGroupSize", "@workItemId" };
+var zig_keywords = [_][]const u8{ "addrspace", "align", "allowzero", "and", "anyframe", "anytype", "asm", "break", "callconv", "catch", "comptime", "const", "continue", "defer", "else", "enum", "errdefer", "error", "export", "extern", "fn", "for", "if", "inline", "noalias", "nosuspend", "noinline", "opaque", "or", "orelse", "packed", "pub", "resume", "return", "linksection", "struct", "suspend", "switch", "test", "threadlocal", "try", "union", "unreachable", "var", "volatile", "while" };
+var zig_literals = [_][]const u8{ "false", "true" };
+var zig_types = [_][]const u8{ "bool", "isize", "usize", "void" };
+
+const css_open_bracket = " {";
+const diff_meta = "@@";
+const html_open_comment = "<!--";
 
 /// Rudimentary code highlighter that operates on individual lines of code
 /// using basic forward and backward lookup
@@ -92,19 +118,24 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
     var group: SyntaxGroup = .plain;
     var group_index: usize = 0;
 
-    const has_colon = (std.mem.indexOfScalar(u8, line, ':') orelse 0) > 0;
-    const has_bracket = lang == .css and (std.mem.indexOfScalar(u8, line, '{') orelse 0) > 0;
+    var string_char: u8 = '\'';
+    const has_colon = (std.mem.findScalar(u8, line, ':') orelse 0) > 0;
+    var has_bracket: ?bool = null;
     var in_tag = false;
     var num_spaces: usize = 0;
 
     while (i < line.len) : (i += 1) {
         switch (lang) {
             .css => {
-                if (i == 0 and has_bracket) {
+                has_bracket = has_bracket orelse ((std.mem.findScalar(u8, line, '{') orelse 0) > 0);
+                if (i == 0 and has_bracket.?) {
                     len += try changeSyntaxGroup(w, &group, .attr);
                     group_index = i;
-                } else if (i != group_index and lookAheadHas(line, i, " {")) {
+                } else if (i != group_index and lookAheadHas(line, i, css_open_bracket)) {
                     len += try changeSyntaxGroup(w, &group, .plain);
+                    len += try w.write(css_open_bracket);
+                    i += css_open_bracket.len - 1;
+                    continue;
                 }
                 len += try parser.printEscapedHtml(line[i], w);
             },
@@ -123,18 +154,19 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     } else if (i == 0 and line[i] == '+') {
                         len += try changeSyntaxGroup(w, &group, .addition);
                         group_index = i;
-                    } else if (lookAheadHas(line, i, "@@")) {
+                    } else if (lookAheadHas(line, i, diff_meta)) {
                         len += try changeSyntaxGroup(w, &group, .meta);
                         group_index = i;
+                        len += try w.write(diff_meta);
+                        i += diff_meta.len - 1;
+                        continue;
                     }
                 }
 
                 len += try parser.printEscapedHtml(line[i], w);
 
-                if (i != group_index) {
-                    if (group == .meta and lookBehindHas(line, i, "@@")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    }
+                if (group == .meta and i != group_index and lookBehindHas(line, i, diff_meta)) {
+                    len += try changeSyntaxGroup(w, &group, .plain);
                 }
             },
             .go => {
@@ -143,31 +175,17 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                         len += try changeSyntaxGroup(w, &group, .comment);
                         group_index = i;
                     } else if (line[i] == '"') {
-                        len += try changeSyntaxGroup(w, &group, .string_double);
+                        len += try changeSyntaxGroup(w, &group, .string);
+                        string_char = line[i];
                         group_index = i;
-                    } else if (std.ascii.isAlphabetic(line[i]) and i >= 5 and std.mem.eql(u8, line[i - 5 .. i], "func ")) {
+                    } else if (i >= 5 and std.mem.eql(u8, line[i - 5 .. i], "func ")) {
                         len += try changeSyntaxGroup(w, &group, .function);
                         group_index = i;
                     } else {
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "append");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "make");
-
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "case");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "continue");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "defer");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "for");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "func");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "go");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "import");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "package");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "range");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "return");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "select");
-
-                        len += try writeKeywordIfExists(w, line, &i, .literal, "nil");
-
-                        len += try writeKeywordIfExists(w, line, &i, .type, "chan");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "error");
+                        len += try writeWordIfExists(w, line, &i, .builtin, &go_builtins);
+                        len += try writeWordIfExists(w, line, &i, .keyword, &go_keywords);
+                        len += try writeWordIfExists(w, line, &i, .literal, &go_literals);
+                        len += try writeWordIfExists(w, line, &i, .type, &go_types);
 
                         if (i >= line.len) break;
                     }
@@ -175,17 +193,18 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     len += try changeSyntaxGroup(w, &group, .plain);
                 }
                 len += try parser.printEscapedHtml(line[i], w);
-                if (i != group_index) {
-                    if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    }
+                if (group == .string and i != group_index and lookBehindHasUnescaped(line, i, string_char)) {
+                    len += try changeSyntaxGroup(w, &group, .plain);
                 }
             },
             .html => {
                 if (group == .plain) {
-                    if (lookAheadHas(line, i, "<!--")) {
+                    if (lookAheadHas(line, i, html_open_comment)) {
                         len += try changeSyntaxGroup(w, &group, .comment);
                         group_index = i;
+                        len += try w.write("&lt;!--");
+                        i += html_open_comment.len - 1;
+                        continue;
                     } else if (line[i] == '<') {
                         len += try parser.printEscapedHtml(line[i], w);
                         i += 1;
@@ -199,20 +218,22 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                         len += try changeSyntaxGroup(w, &group, .tag);
                         group_index = i;
                     } else if (in_tag and line[i] == '"') {
-                        len += try changeSyntaxGroup(w, &group, .string_double);
+                        len += try changeSyntaxGroup(w, &group, .string);
+                        string_char = line[i];
                         group_index = i;
                     } else if (in_tag and i > 0 and line[i - 1] == '=') {
-                        len += try changeSyntaxGroup(w, &group, .string_tag);
+                        len += try changeSyntaxGroup(w, &group, .string);
+                        string_char = ' ';
                         group_index = i;
                     } else if (in_tag and std.ascii.isAlphabetic(line[i])) {
                         len += try changeSyntaxGroup(w, &group, .attr);
                         group_index = i;
                     }
-                } else if (group == .tag or group == .string_tag) {
+                } else if (group == .tag or group == .string) {
                     if (line[i] == '>') {
                         len += try changeSyntaxGroup(w, &group, .plain);
                         in_tag = false;
-                    } else if (line[i] == ' ') {
+                    } else if (line[i] == ' ' and group != .string) {
                         len += try changeSyntaxGroup(w, &group, .plain);
                     }
                 } else if (group == .attr) {
@@ -221,12 +242,10 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     }
                 }
                 len += try parser.printEscapedHtml(line[i], w);
-                if (i != group_index) {
-                    if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    } else if (group == .comment and lookBehindHas(line, i, "-->")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    }
+                if (group == .string and i != group_index and lookBehindHasUnescaped(line, i, string_char)) {
+                    len += try changeSyntaxGroup(w, &group, .plain);
+                } else if (group == .comment and lookBehindHas(line, i, "-->")) {
+                    len += try changeSyntaxGroup(w, &group, .plain);
                 }
             },
             .ini => {
@@ -243,7 +262,8 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     }
                 } else if (group == .plain) {
                     if (line[i] == '"') {
-                        len += try changeSyntaxGroup(w, &group, .string_double);
+                        len += try changeSyntaxGroup(w, &group, .string);
+                        string_char = line[i];
                         group_index = i;
                     } else if (line[i] == '#') {
                         len += try changeSyntaxGroup(w, &group, .comment);
@@ -251,18 +271,14 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     }
                 }
 
-                if (i != group_index) {
-                    if (group == .attr and lookAheadHas(line, i, " =")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    }
+                if (group == .attr and i != group_index and lookAheadHas(line, i, " =")) {
+                    len += try changeSyntaxGroup(w, &group, .plain);
                 }
 
                 len += try parser.printEscapedHtml(line[i], w);
 
-                if (i != group_index) {
-                    if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    }
+                if (group == .string and i != group_index and lookBehindHasUnescaped(line, i, string_char)) {
+                    len += try changeSyntaxGroup(w, &group, .plain);
                 }
             },
             .js, .jsx, .ts, .tsx => {
@@ -270,14 +286,9 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     if (lookAheadHas(line, i, "//")) {
                         len += try changeSyntaxGroup(w, &group, .comment);
                         group_index = i;
-                    } else if (line[i] == '\'') {
-                        len += try changeSyntaxGroup(w, &group, .string_single);
-                        group_index = i;
-                    } else if (line[i] == '"') {
-                        len += try changeSyntaxGroup(w, &group, .string_double);
-                        group_index = i;
-                    } else if (line[i] == '`') {
-                        len += try changeSyntaxGroup(w, &group, .string_template);
+                    } else if (line[i] == '\'' or line[i] == '"' or line[i] == '`') {
+                        len += try changeSyntaxGroup(w, &group, .string);
+                        string_char = line[i];
                         group_index = i;
                     } else if ((i == 0 or !std.ascii.isAlphanumeric(line[i - 1])) and std.ascii.isDigit(line[i])) {
                         len += try changeSyntaxGroup(w, &group, .number);
@@ -286,79 +297,10 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                         len += try changeSyntaxGroup(w, &group, .function);
                         group_index = i;
                     } else {
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "async");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "await");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "break");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "catch");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "class");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "const");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "constructor");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "continue");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "delete");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "do");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "else");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "export");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "extends");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "for");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "function");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "from");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "if");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "import");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "in");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "instanceof");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "let");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "new");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "of");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "return");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "static");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "super");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "switch");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "this");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "throw");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "try");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "type");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "typeof");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "using");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "var");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "void");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "while");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "with");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "yield");
-
-                        len += try writeKeywordIfExists(w, line, &i, .literal, "document");
-                        len += try writeKeywordIfExists(w, line, &i, .literal, "false");
-                        len += try writeKeywordIfExists(w, line, &i, .literal, "globalThis");
-                        len += try writeKeywordIfExists(w, line, &i, .literal, "Infinity");
-                        len += try writeKeywordIfExists(w, line, &i, .literal, "NaN");
-                        len += try writeKeywordIfExists(w, line, &i, .literal, "null");
-                        len += try writeKeywordIfExists(w, line, &i, .literal, "undefined");
-                        len += try writeKeywordIfExists(w, line, &i, .literal, "true");
-                        len += try writeKeywordIfExists(w, line, &i, .literal, "window");
-
-                        len += try writeKeywordIfExists(w, line, &i, .function, "Boolean");
-                        len += try writeKeywordIfExists(w, line, &i, .function, "Number");
-                        len += try writeKeywordIfExists(w, line, &i, .function, "Promise");
-                        len += try writeKeywordIfExists(w, line, &i, .function, "String");
-
-                        len += try writeKeywordIfExists(w, line, &i, .type, "Awaited");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "any");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "as");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "boolean");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "is");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "NonNullable");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "never");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "number");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "Omit");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "object");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "Parameters");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "Partial");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "Pick");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "Record");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "Required");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "ReturnType");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "readonly");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "string");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "unknown");
+                        len += try writeWordIfExists(w, line, &i, .function, &js_functions);
+                        len += try writeWordIfExists(w, line, &i, .keyword, &js_keywords);
+                        len += try writeWordIfExists(w, line, &i, .literal, &js_literals);
+                        len += try writeWordIfExists(w, line, &i, .type, &js_types);
 
                         if (i >= line.len) break;
                     }
@@ -370,14 +312,8 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
 
                 len += try parser.printEscapedHtml(line[i], w);
 
-                if (i != group_index) {
-                    if (group == .string_single and lookBehindHas(line, i, "'") and !lookBehindHas(line, i, "\\'")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    } else if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    } else if (group == .string_template and lookBehindHas(line, i, "`") and !lookBehindHas(line, i, "\\`")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    }
+                if (group == .string and i != group_index and lookBehindHasUnescaped(line, i, string_char)) {
+                    len += try changeSyntaxGroup(w, &group, .plain);
                 }
             },
             .json => {
@@ -396,7 +332,8 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
 
                 if (group == .plain) {
                     if (line[i] == '"') {
-                        len += try changeSyntaxGroup(w, &group, .string_double);
+                        len += try changeSyntaxGroup(w, &group, .string);
+                        string_char = line[i];
                         group_index = i;
                     } else if (std.ascii.isDigit(line[i])) {
                         len += try changeSyntaxGroup(w, &group, .number);
@@ -404,10 +341,8 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     }
                 }
                 len += try parser.printEscapedHtml(line[i], w);
-                if (group_index != i) {
-                    if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    }
+                if (group == .string and i != group_index and lookBehindHasUnescaped(line, i, string_char)) {
+                    len += try changeSyntaxGroup(w, &group, .plain);
                 }
             },
             .lua => {
@@ -416,27 +351,12 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                         len += try changeSyntaxGroup(w, &group, .comment);
                         group_index = i;
                     } else if (line[i] == '"') {
-                        len += try changeSyntaxGroup(w, &group, .string_double);
+                        len += try changeSyntaxGroup(w, &group, .string);
+                        string_char = line[i];
                         group_index = i;
                     } else {
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "break");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "do");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "end");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "elsif");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "else");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "for");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "function");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "if");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "local");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "repeat");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "return");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "then");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "until");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "while");
-
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "false");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "nil");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "true");
+                        len += try writeWordIfExists(w, line, &i, .builtin, &lua_builtins);
+                        len += try writeWordIfExists(w, line, &i, .keyword, &lua_keywords);
 
                         if (i >= line.len) break;
                     }
@@ -444,10 +364,8 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
 
                 len += try parser.printEscapedHtml(line[i], w);
 
-                if (i != group_index) {
-                    if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    }
+                if (group == .string and i != group_index and lookBehindHasUnescaped(line, i, string_char)) {
+                    len += try changeSyntaxGroup(w, &group, .plain);
                 }
             },
             .sh, .crontab => {
@@ -461,27 +379,13 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     } else if (lang == .crontab and i == 0) {
                         len += try changeSyntaxGroup(w, &group, .section);
                         group_index = i;
-                    } else if (line[i] == '\'') {
-                        len += try changeSyntaxGroup(w, &group, .string_single);
-                        group_index = i;
-                    } else if (line[i] == '"') {
-                        len += try changeSyntaxGroup(w, &group, .string_double);
+                    } else if (line[i] == '\'' or line[i] == '"') {
+                        len += try changeSyntaxGroup(w, &group, .string);
+                        string_char = line[i];
                         group_index = i;
                     } else {
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "fi");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "if");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "then");
-
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "cd");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "chgrp");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "chmod");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "chown");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "cp");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "echo");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "mkdir");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "mv");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "printf");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "rm");
+                        len += try writeWordIfExists(w, line, &i, .builtin, &sh_builtins);
+                        len += try writeWordIfExists(w, line, &i, .keyword, &sh_keywords);
 
                         if (i >= line.len) break;
                     }
@@ -496,38 +400,27 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
 
                 len += try parser.printEscapedHtml(line[i], w);
 
-                if (i != group_index) {
-                    if (group == .string_single and lookBehindHas(line, i, "'") and !lookBehindHas(line, i, "\\'")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    } else if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    }
+                if (group == .string and i != group_index and lookBehindHasUnescaped(line, i, string_char)) {
+                    len += try changeSyntaxGroup(w, &group, .plain);
                 }
             },
             .vim => {
                 if (group == .plain) {
                     if (lookAheadHas(line, i, "\" ")) {
                         len += try changeSyntaxGroup(w, &group, .comment);
-                    } else if (line[i] == '\'') {
-                        len += try changeSyntaxGroup(w, &group, .string_single);
-                        group_index = i;
-                    } else if (line[i] == '"') {
-                        len += try changeSyntaxGroup(w, &group, .string_double);
+                    } else if (line[i] == '\'' or line[i] == '"') {
+                        len += try changeSyntaxGroup(w, &group, .string);
+                        string_char = line[i];
                         group_index = i;
                     } else {
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "let");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "set");
+                        len += try writeWordIfExists(w, line, &i, .keyword, &vim_keywords);
 
                         if (i >= line.len) break;
                     }
                 }
                 len += try parser.printEscapedHtml(line[i], w);
-                if (i != group_index) {
-                    if (group == .string_single and lookBehindHas(line, i, "'") and !lookBehindHas(line, i, "\\'")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    } else if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    }
+                if (group == .string and i != group_index and lookBehindHasUnescaped(line, i, string_char)) {
+                    len += try changeSyntaxGroup(w, &group, .plain);
                 }
             },
             .yaml => {
@@ -541,18 +434,16 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     len += try changeSyntaxGroup(w, &group, .attr);
                     group_index = i;
                 } else if (group == .plain and std.ascii.isAlphanumeric(line[i])) {
-                    len += try changeSyntaxGroup(w, &group, .string_single);
+                    len += try changeSyntaxGroup(w, &group, .string);
                     group_index = i;
                 }
 
                 len += try parser.printEscapedHtml(line[i], w);
 
-                if (group_index != i) {
-                    if (group == .attr and lookBehindHas(line, i, ":") and i + 1 < line.len) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                        len += try changeSyntaxGroup(w, &group, .string_single);
-                        group_index = i;
-                    }
+                if (group == .attr and i != group_index and lookBehindHas(line, i, ":") and i + 1 < line.len) {
+                    len += try changeSyntaxGroup(w, &group, .plain);
+                    len += try changeSyntaxGroup(w, &group, .string);
+                    group_index = i;
                 }
             },
             .zig => {
@@ -560,195 +451,18 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     if (lookAheadHas(line, i, "//")) {
                         len += try changeSyntaxGroup(w, &group, .comment);
                         group_index = i;
-                    } else if (line[i] == '\'') {
-                        len += try changeSyntaxGroup(w, &group, .string_single);
-                        group_index = i;
-                    } else if (line[i] == '"') {
-                        len += try changeSyntaxGroup(w, &group, .string_double);
+                    } else if (line[i] == '\'' or line[i] == '"') {
+                        len += try changeSyntaxGroup(w, &group, .string);
+                        string_char = line[i];
                         group_index = i;
                     } else if (std.ascii.isAlphabetic(line[i]) and i >= 3 and std.mem.eql(u8, line[i - 3 .. i], "fn ")) {
                         len += try changeSyntaxGroup(w, &group, .function);
                         group_index = i;
                     } else {
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "addrspace");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "align");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "allowzero");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "and");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "anyframe");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "anytype");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "asm");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "break");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "callconv");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "catch");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "comptime");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "const");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "continue");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "defer");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "else");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "enum");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "errdefer");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "error");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "export");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "extern");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "fn");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "for");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "if");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "inline");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "noalias");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "nosuspend");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "noinline");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "opaque");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "or");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "orelse");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "packed");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "pub");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "resume");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "return");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "linksection");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "struct");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "suspend");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "switch");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "test");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "threadlocal");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "try");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "union");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "unreachable");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "var");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "volatile");
-                        len += try writeKeywordIfExists(w, line, &i, .keyword, "while");
-
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@addrSpaceCast");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@addWithOverflow");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@alignCast");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@alignOf");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@as");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@atomicLoad");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@atomicRmw");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@atomicStore");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@bitCast");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@bitOffsetOf");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@bitSizeOf");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@branchHint");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@breakpoint");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@mulAdd");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@byteSwap");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@bitReverse");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@offsetOf");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@call");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cDefine");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cImport");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cInclude");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@clz");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cmpxchgStrong");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cmpxchgWeak");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@compileError");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@compileLog");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@constCast");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@ctz");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cUndef");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cVaArg");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cVaCopy");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cVaEnd");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cVaStart");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@divExact");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@divFloor");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@divTrunc");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@embedFile");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@enumFromInt");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@errorFromInt");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@errorName");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@errorReturnTrace");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@errorCast");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@export");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@extern");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@field");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@fieldParentPtr");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@FieldType");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@floatCast");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@floatFromInt");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@frameAddress");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@hasDecl");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@hasField");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@import");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@inComptime");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@intCast");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@intFromBool");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@intFromEnum");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@intFromError");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@intFromFloat");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@intFromPtr");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@max");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@memcpy");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@memset");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@memmove");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@min");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@wasmMemorySize");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@wasmMemoryGrow");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@mod");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@mulWithOverflow");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@panic");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@popCount");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@prefetch");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@ptrCast");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@ptrFromInt");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@rem");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@returnAddress");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@select");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@setEvalBranchQuota");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@setFloatMode");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@setRuntimeSafety");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@shlExact");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@shlWithOverflow");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@shrExact");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@shuffle");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@sizeOf");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@splat");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@reduce");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@src");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@sqrt");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@sin");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@cos");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@tan");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@exp");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@exp2");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@log");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@log2");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@log10");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@abs");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@floor");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@ceil");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@trunc");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@round");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@subWithOverflow");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@tagName");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@This");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@trap");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@truncate");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@EnumLiteral");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@Int");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@Tuple");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@Pointer");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@Fn");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@Struct");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@Union");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@Enum");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@typeInfo");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@typeName");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@TypeOf");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@unionInit");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@Vector");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@volatileCast");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@workGroupId");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@workGroupSize");
-                        len += try writeKeywordIfExists(w, line, &i, .builtin, "@workItemId");
-
-                        len += try writeKeywordIfExists(w, line, &i, .literal, "false");
-                        len += try writeKeywordIfExists(w, line, &i, .literal, "true");
-
-                        len += try writeKeywordIfExists(w, line, &i, .type, "bool");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "isize");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "usize");
-                        len += try writeKeywordIfExists(w, line, &i, .type, "void");
+                        len += try writeWordIfExists(w, line, &i, .builtin, &zig_builtins);
+                        len += try writeWordIfExists(w, line, &i, .keyword, &zig_keywords);
+                        len += try writeWordIfExists(w, line, &i, .literal, &zig_literals);
+                        len += try writeWordIfExists(w, line, &i, .type, &zig_types);
 
                         if (i < line.len and i == 0 or !std.ascii.isAlphanumeric(line[i - 1])) {
                             // custom numerical types
@@ -783,12 +497,8 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
 
                 len += try parser.printEscapedHtml(line[i], w);
 
-                if (i != group_index) {
-                    if (group == .string_single and lookBehindHas(line, i, "'") and !lookBehindHas(line, i, "\\'")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    } else if (group == .string_double and lookBehindHas(line, i, "\"") and !lookBehindHas(line, i, "\\\"")) {
-                        len += try changeSyntaxGroup(w, &group, .plain);
-                    }
+                if (group == .string and i != group_index and lookBehindHasUnescaped(line, i, string_char)) {
+                    len += try changeSyntaxGroup(w, &group, .plain);
                 }
             },
             .plaintext => len += try parser.printEscapedHtml(line[i], w),
@@ -1007,6 +717,7 @@ test "js, jsx, ts, tsx" {
         \\    queryFn: () => fetch(`api/${4}`),
         \\  })
         \\}
+        \\const q = "hello \"sam\"";
         \\
         \\function hello() {
         \\    return null;
@@ -1032,6 +743,7 @@ test "js, jsx, ts, tsx" {
         \\    queryFn: () =&gt; fetch(<span class="lang-string">`api/${4}`</span>),
         \\  })
         \\}
+        \\<span class="lang-keyword">const</span> q = <span class="lang-string">"hello \"sam\""</span>;
         \\
         \\<span class="lang-keyword">function</span> <span class="lang-title">hello</span>() {
         \\    <span class="lang-keyword">return</span> <span class="lang-literal">null</span>;
