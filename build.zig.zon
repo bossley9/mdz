@@ -1,6 +1,6 @@
 .{
     .name = .mdz,
-    .version = "1.5.2",
+    .version = "1.5.5",
     .fingerprint = 0xe0fb7e028338edd,
     .minimum_zig_version = "0.16.0",
     .paths = .{

@@ -1,6 +1,6 @@
 {
   "name": "@bossley9/mdz",
-  "version": "1.5.2",
+  "version": "1.5.5",
   "tasks": {
     "build": "zig build wasm && deno run -A build.ts",
     "test": "deno run build && deno test --allow-read"
