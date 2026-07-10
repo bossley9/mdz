@@ -71,15 +71,14 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
                 len += try w.write("<code>");
                 state.flags.is_code = true;
             },
-            '"' => {
-                if (state.flags.is_img) {
-                    len += try w.write("&quot;");
-                } else {
-                    len += try w.write("\"");
-                }
-            },
+            '"' => len += try w.write(if (state.flags.is_img) "&quot;" else "\""),
             '*' => {
-                if (i + 1 < line.len and line[i + 1] == '*') {
+                if (state.flags.is_em and state.flags.is_strong and std.mem.startsWith(u8, line[i..], "***")) {
+                    i += 2;
+                    len += try w.write("</em></strong>");
+                    state.flags.is_strong = false;
+                    state.flags.is_em = false;
+                } else if (std.mem.startsWith(u8, line[i..], "**")) {
                     i += 1;
                     len += try w.write(if (state.flags.is_strong)
                         "</strong>"

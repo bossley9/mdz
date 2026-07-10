@@ -1541,6 +1541,30 @@ test "6.1.5" {
 }
 // ```
 
+// When chained together, strong is always inserted before emphasis. If strong must be a child of emphasis, it must be spaced non-consecutively.
+
+// ```zig
+test "6.1.6" {
+    const input =
+        \\***foo bar*** *hello*
+        \\
+        \\ * **foo bar** baz*
+        \\
+        \\***foo* bar**
+        \\
+        \\*hello* **world**
+    ;
+    const output =
+        \\<p><strong><em>foo bar</em></strong> <em>hello</em></p>
+        \\<p> <em> <strong>foo bar</strong> baz</em></p>
+        \\<p><strong><em>foo</em> bar</strong></p>
+        \\<p><em>hello</em> <strong>world</strong></p>
+        \\
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
 // ### 6.2. Code Spans
 
 // A code span begins and ends with a single backtick character and represents an inline segment of code. Any inline content within the code span is treated as literal text excluding backslashes. Any raw HTML within a code span will be escaped.
