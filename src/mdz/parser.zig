@@ -468,7 +468,10 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
         return len + try w.write("</tr>\n</thead>\n<tbody>\n");
     } else if (std.mem.eql(u8, line, "---")) { // thematic break
         return len + try w.write("<hr />\n");
-    } else if (line.len > 1 and line[0] == '<' and std.ascii.isAlphabetic(line[1])) { // HTML block
+    } else if (line.len > 1 and line[0] == '<' and switch (line[1]) {
+        'A'...'Z', 'a'...'z', '/' => true,
+        else => false,
+    }) { // HTML block
         const block = state.items.getLastOrNull() orelse .paragraph; // any block to fall in else
         switch (block) {
             .ordered_list, .unordered_list => {},

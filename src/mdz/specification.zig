@@ -1287,7 +1287,7 @@ test "5.4.3" {
 
 // Similar to a code block, an HTML block is a block that is treated as literal text. The key differences are that HTML markup markers (`<`, `>`, and `&`) are not escaped, and that an HTML block ends when a blank line is reached.
 
-// An HTML block begins with a `<` character immediately followed by any alphabetic character.
+// An HTML block begins with a `<` character immediately followed by an alphabetic character or a forward slash (`/`).
 
 // ```zig
 test "5.5.1" {
@@ -1340,6 +1340,26 @@ test "5.5.3" {
         \\secrets
         \\</details>
         \\<p>foo bar</p>
+        \\
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
+// ```zig
+test "5.5.4" {
+    const input =
+        \\<section>
+        \\
+        \\foo
+        \\
+        \\</section>
+        \\
+    ;
+    const output =
+        \\<section>
+        \\<p>foo</p>
+        \\</section>
         \\
     ;
     try th.expectParseMDZ(input, output);
