@@ -5,7 +5,7 @@ const slugify = @import("../slugify/slugify.zig");
 
 const Io = std.Io;
 
-const GenericMDZError = error{ InvalidMDZSyntax, UnreachableMDZCode };
+const GenericMDZError = error{ InvalidMDZSyntax, OutOfMemory };
 
 /// Custom implementation of `Io.Reader.takeDelimiterExclusive` to
 /// account for different line endings (LF/CRLF) and optional EOF LF.
@@ -48,7 +48,7 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
     var ref_index: ?usize = null;
     var i: usize = 0;
     while (i < line.len) : (i += 1) {
-        if (state.flags.is_code) {
+        if (state.flags.contains(.is_code)) {
             @branchHint(.unlikely);
             switch (line[i]) {
                 '\\' => {
@@ -60,7 +60,7 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
                 },
                 '`' => {
                     len += try w.write("</code>");
-                    state.flags.is_code = false;
+                    state.flags.remove(.is_code);
                 },
                 else => len += try printEscapedHtml(line[i], w),
             }
@@ -69,38 +69,38 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
         switch (line[i]) {
             '`' => {
                 len += try w.write("<code>");
-                state.flags.is_code = true;
+                state.flags.insert(.is_code);
             },
-            '"' => len += try w.write(if (state.flags.is_img) "&quot;" else "\""),
+            '"' => len += try w.write(if (state.flags.contains(.is_img)) "&quot;" else "\""),
             '*' => {
-                if (state.flags.is_em and state.flags.is_strong and std.mem.startsWith(u8, line[i..], "***")) {
+                if (state.flags.contains(.is_em) and state.flags.contains(.is_strong) and std.mem.startsWith(u8, line[i..], "***")) {
                     i += 2;
                     len += try w.write("</em></strong>");
-                    state.flags.is_strong = false;
-                    state.flags.is_em = false;
+                    state.flags.remove(.is_strong);
+                    state.flags.remove(.is_em);
                 } else if (std.mem.startsWith(u8, line[i..], "**")) {
                     i += 1;
-                    len += try w.write(if (state.flags.is_strong)
+                    len += try w.write(if (state.flags.contains(.is_strong))
                         "</strong>"
                     else
                         "<strong>");
-                    state.flags.is_strong = !state.flags.is_strong;
+                    state.flags.toggle(.is_strong);
                 } else {
-                    len += try w.write(if (state.flags.is_em)
+                    len += try w.write(if (state.flags.contains(.is_em))
                         "</em>"
                     else
                         "<em>");
-                    state.flags.is_em = !state.flags.is_em;
+                    state.flags.toggle(.is_em);
                 }
             },
             '~' => {
                 if (std.mem.startsWith(u8, line[i..], "~~")) {
                     i += 1;
-                    len += try w.write(if (state.flags.is_strike)
+                    len += try w.write(if (state.flags.contains(.is_strike))
                         "</s>"
                     else
                         "<s>");
-                    state.flags.is_strike = !state.flags.is_strike;
+                    state.flags.toggle(.is_strike);
                 } else {
                     len += try w.write("~");
                 }
@@ -108,11 +108,11 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
             '-' => {
                 if (std.mem.startsWith(u8, line[i..], "--")) {
                     i += 1;
-                    len += try w.write(if (state.flags.is_del)
+                    len += try w.write(if (state.flags.contains(.is_del))
                         "</del>"
                     else
                         "<del>");
-                    state.flags.is_del = !state.flags.is_del;
+                    state.flags.toggle(.is_del);
                 } else {
                     len += try w.write("-");
                 }
@@ -120,11 +120,11 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
             '+' => {
                 if (std.mem.startsWith(u8, line[i..], "++")) {
                     i += 1;
-                    len += try w.write(if (state.flags.is_ins)
+                    len += try w.write(if (state.flags.contains(.is_ins))
                         "</ins>"
                     else
                         "<ins>");
-                    state.flags.is_ins = !state.flags.is_ins;
+                    state.flags.toggle(.is_ins);
                 } else {
                     len += try w.write("+");
                 }
@@ -132,11 +132,11 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
             '=' => {
                 if (std.mem.startsWith(u8, line[i..], "==")) {
                     i += 1;
-                    len += try w.write(if (state.flags.is_mark)
+                    len += try w.write(if (state.flags.contains(.is_mark))
                         "</mark>"
                     else
                         "<mark>");
-                    state.flags.is_mark = !state.flags.is_mark;
+                    state.flags.toggle(.is_mark);
                 } else {
                     len += try w.write("=");
                 }
@@ -145,35 +145,35 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
                 if (i + 1 < line.len and line[i + 1] == '^') {
                     i += 1;
                     ref_index = i + 1;
-                    state.flags.is_footnote_citation = true;
+                    state.flags.insert(.is_footnote_citation);
                     len += try w.write("<sup class=\"footnote-ref\"><a href=\"#fn");
                 } else {
-                    state.flags.is_link = true;
+                    state.flags.insert(.is_link);
                     ref_index = i;
                     len += try w.write("<a href=\"");
                     i = i + (std.mem.find(u8, line[i..], "](") orelse return error.InvalidMDZSyntax) + 1;
                 }
             },
             ')' => {
-                if (state.flags.is_link) {
+                if (state.flags.contains(.is_link)) {
                     const new_ref_index = i;
                     i = ref_index orelse return error.InvalidMDZSyntax;
                     ref_index = new_ref_index;
                     len += try w.write("\">");
-                } else if (state.flags.is_img) {
+                } else if (state.flags.contains(.is_img)) {
                     len += try w.write("\" />");
-                    state.flags.is_img = false;
+                    state.flags.remove(.is_img);
                 } else {
                     len += try w.write(")");
                 }
             },
             ']' => {
-                if (state.flags.is_link) {
+                if (state.flags.contains(.is_link)) {
                     len += try w.write("</a>");
                     i = ref_index orelse return error.InvalidMDZSyntax;
-                    state.flags.is_link = false;
+                    state.flags.remove(.is_link);
                     ref_index = null;
-                } else if (state.flags.is_footnote_citation) {
+                } else if (state.flags.contains(.is_footnote_citation)) {
                     const fn_key = try std.fmt.parseInt(u8, line[(ref_index orelse return error.InvalidMDZSyntax)..i], 10);
                     const fn_num = state.footnotes[fn_key];
 
@@ -190,9 +190,9 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
                         len += try w.write(fmt);
                     }
                     state.footnotes[fn_key] += 1;
-                    state.flags.is_footnote_citation = false;
+                    state.flags.remove(.is_footnote_citation);
                     ref_index = null;
-                } else if (state.flags.is_img) {
+                } else if (state.flags.contains(.is_img)) {
                     std.debug.assert(line[i + 1] == '(');
                     i += 1;
                     len += try w.write("\" src=\"");
@@ -202,7 +202,7 @@ fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInli
             },
             '!' => {
                 if (i + 1 < line.len and line[i + 1] == '[') {
-                    state.flags.is_img = true;
+                    state.flags.insert(.is_img);
                     i += 1;
                     len += try w.write("<img alt=\"");
                 } else {
@@ -274,26 +274,25 @@ fn processHeading(level: u3, line: []u8, w: *Io.Writer, state: *ast.BlockState) 
 const CloseBlocksError = Io.Writer.Error || GenericMDZError;
 fn closeBlocks(w: *Io.Writer, state: *ast.BlockState, depth: usize) CloseBlocksError!usize {
     var len: usize = 0;
-    state.resetFlags();
-    while (state.len > depth) : ({
-        state.items[state.len - 1] = .nil;
-        state.len -= 1;
-    }) switch (state.items[state.len - 1]) {
-        .nil => return GenericMDZError.UnreachableMDZCode,
-        .block_quote => len += try w.write("</blockquote>\n"),
-        .unordered_list => len += try w.write("</li>\n</ul>\n"),
-        .ordered_list => len += try w.write("</li>\n</ol>\n"),
-        .paragraph => len += try w.write("</p>\n"),
-        .paragraph_hidden, .html_block => {},
-        .code_block => len += try w.write("</code></pre>\n"),
-        .pre_block => len += try w.write("</pre>\n"),
-        .footnote_reference => len += try w.write("</ol>\n</section>\n"),
-        .table => len += try w.write("</tbody>\n</table>\n"),
-    };
+    state.flags = .init(.{});
+    while (state.items.items.len > depth) {
+        const str = switch (state.items.pop().?) {
+            .block_quote => "</blockquote>\n",
+            .unordered_list => "</li>\n</ul>\n",
+            .ordered_list => "</li>\n</ol>\n",
+            .paragraph => "</p>\n",
+            .paragraph_hidden, .html_block => "",
+            .code_block => "</code></pre>\n",
+            .pre_block => "</pre>\n",
+            .footnote_reference => "</ol>\n</section>\n",
+            .table => "</tbody>\n</table>\n",
+        };
+        len += try w.write(str);
+    }
     return len;
 }
 
-const ProcessLineError = Io.Writer.Error || ast.StackError || ProcessInlinesError || GenericMDZError;
+const ProcessLineError = Io.Writer.Error || ProcessInlinesError || GenericMDZError;
 
 fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, starting_depth: usize) ProcessLineError!usize {
     var depth = starting_depth;
@@ -304,9 +303,8 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
     // validate existing blocks
     //
 
-    while (depth < state.len) : (depth += 1) {
-        switch (state.items[depth]) {
-            .nil => return GenericMDZError.UnreachableMDZCode,
+    while (depth < state.items.items.len) : (depth += 1) {
+        switch (state.items.items[depth]) {
             .block_quote => {
                 if (std.mem.startsWith(u8, line, "> ")) {
                     line = line[2..];
@@ -415,19 +413,19 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
     //
 
     if (std.mem.startsWith(u8, line, "> ")) { // block quote
-        try state.push(.block_quote);
+        try state.items.appendBounded(.block_quote);
         len += try w.write("<blockquote>\n");
         return len + try processLine(line[2..], w, state, depth + 1);
     } else if (std.mem.startsWith(u8, line, "* ")) { // unordered list
-        try state.push(.unordered_list);
+        try state.items.appendBounded(.unordered_list);
         len += try w.write("<ul>\n<li>");
         return len + try processLine(line[2..], w, state, depth + 1);
     } else if (std.mem.startsWith(u8, line, "1. ")) { // ordered list
-        try state.push(.ordered_list);
+        try state.items.appendBounded(.ordered_list);
         len += try w.write("<ol>\n<li>");
         return len + try processLine(line[3..], w, state, depth + 1);
     } else if (std.mem.startsWith(u8, line, "```")) { // code block
-        try state.push(.code_block);
+        try state.items.appendBounded(.code_block);
         len += try w.write("<pre><code");
         const lang = line[3..];
         if (lang.len > 0 and !std.mem.eql(u8, lang, "plaintext")) {
@@ -438,7 +436,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
         state.lang = std.meta.stringToEnum(ast.CodeLanguage, lang) orelse .plaintext;
         return len + try w.write(">");
     } else if (std.mem.startsWith(u8, line, "===")) { // preformatted block
-        try state.push(.pre_block);
+        try state.items.appendBounded(.pre_block);
         return len + try w.write("<pre>");
     } else if (std.mem.startsWith(u8, line, "###### ")) { // heading 6
         return len + try processHeading(6, line, w, state);
@@ -453,11 +451,11 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
     } else if (std.mem.startsWith(u8, line, "# ")) { // heading 1
         return len + try processHeading(1, line, w, state);
     } else if (std.mem.startsWith(u8, line, "[^")) { // footnote reference
-        try state.push(.footnote_reference);
+        try state.items.appendBounded(.footnote_reference);
         len += try w.write("<section class=\"footnotes\">\n<ol class=\"footnotes-list\">\n");
         return len + try processFootnoteReference(line, w, state);
     } else if (std.mem.startsWith(u8, line, "| ")) { // table
-        try state.push(.table);
+        try state.items.appendBounded(.table);
         len += try w.write("<table>\n<thead>\n<tr>\n");
         while (line.len > 1) {
             len += try w.write("<th>");
@@ -471,21 +469,23 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
     } else if (std.mem.eql(u8, line, "---")) { // thematic break
         return len + try w.write("<hr />\n");
     } else if (line.len > 1 and line[0] == '<' and std.ascii.isAlphabetic(line[1])) { // HTML block
-        switch (state.getLastBlock()) {
+        const block = state.items.getLastOrNull() orelse .paragraph; // any block to fall in else
+        switch (block) {
             .ordered_list, .unordered_list => {},
             else => {
-                try state.push(.html_block);
+                try state.items.appendBounded(.html_block);
                 return len + try processLine(line, w, state, depth);
             },
         }
     } else { // paragraph
-        switch (state.getLastBlock()) {
+        const block = state.items.getLastOrNull() orelse .table; // any block to fall in else
+        switch (block) {
             .unordered_list,
             .ordered_list,
-            => try state.push(.paragraph_hidden),
-            .paragraph, .paragraph_hidden => return GenericMDZError.UnreachableMDZCode,
+            => try state.items.appendBounded(.paragraph_hidden),
+            .paragraph, .paragraph_hidden => unreachable,
             else => {
-                try state.push(.paragraph);
+                try state.items.appendBounded(.paragraph);
                 len += try w.write("<p>");
             },
         }
@@ -504,7 +504,8 @@ pub const ParseMDZError = error{ ReadFailed, StreamTooLong } || ProcessLineError
 /// corresponding HTML string to the writer, then return the number of
 /// bytes written.
 pub fn parseMDZ(r: *Io.Reader, w: *Io.Writer) ParseMDZError!usize {
-    var state = ast.BlockState.init();
+    var stack_buffer: [16]ast.Block = undefined;
+    var state = ast.BlockState.init(&stack_buffer);
     var len: usize = 0;
 
     while (takeNewlineExclusive(r)) |line| {

@@ -21,12 +21,6 @@ const SyntaxGroup = enum {
     type,
 };
 
-/// Return true if the characters ahead match the pattern.
-fn lookAheadHas(line: []u8, i: usize, pattern: []const u8) bool {
-    if (i + pattern.len > line.len) return false;
-    return std.mem.eql(u8, line[i .. i + pattern.len], pattern);
-}
-
 /// Return true if the characters behind match the pattern.
 /// Does not check if the pattern can exist.
 fn lookBehindHas(line: []u8, i: usize, pattern: []const u8) bool {
@@ -50,7 +44,7 @@ fn writeWordIfExists(
     for (words) |word| {
         if (
         // pattern does not match
-        !lookAheadHas(line, i.*, word) or
+        !std.mem.startsWith(u8, line[i.*..], word) or
             // end does not match
             (i.* + word.len != line.len and std.ascii.isAlphanumeric(line[i.* + word.len]))) continue;
 
@@ -71,21 +65,22 @@ fn writeWordIfExists(
 
 fn changeSyntaxGroup(w: *Io.Writer, current_group: *SyntaxGroup, new_group: SyntaxGroup) Io.Writer.Error!usize {
     current_group.* = new_group;
-    return switch (new_group) {
-        .addition => try w.write("<span class=\"lang-addition\">"),
-        .attr => try w.write("<span class=\"lang-attr\">"),
-        .comment => try w.write("<span class=\"lang-comment\">"),
-        .deletion => try w.write("<span class=\"lang-deletion\">"),
-        .function => try w.write("<span class=\"lang-title\">"),
-        .literal => try w.write("<span class=\"lang-literal\">"),
-        .meta => try w.write("<span class=\"lang-meta\">"),
-        .number => try w.write("<span class=\"lang-number\">"),
-        .plain => try w.write("</span>"),
-        .section => try w.write("<span class=\"lang-section\">"),
-        .string => try w.write("<span class=\"lang-string\">"),
-        .tag => try w.write("<span class=\"lang-tag\">"),
-        .type => try w.write("<span class=\"lang-type\">"),
+    const str = switch (new_group) {
+        .addition => "<span class=\"lang-addition\">",
+        .attr => "<span class=\"lang-attr\">",
+        .comment => "<span class=\"lang-comment\">",
+        .deletion => "<span class=\"lang-deletion\">",
+        .function => "<span class=\"lang-title\">",
+        .literal => "<span class=\"lang-literal\">",
+        .meta => "<span class=\"lang-meta\">",
+        .number => "<span class=\"lang-number\">",
+        .plain => "</span>",
+        .section => "<span class=\"lang-section\">",
+        .string => "<span class=\"lang-string\">",
+        .tag => "<span class=\"lang-tag\">",
+        .type => "<span class=\"lang-type\">",
     };
+    return try w.write(str);
 }
 
 var go_builtins = [_][]const u8{ "append", "make" };
@@ -131,7 +126,7 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                 if (i == 0 and has_bracket.?) {
                     len += try changeSyntaxGroup(w, &group, .attr);
                     group_index = i;
-                } else if (i != group_index and lookAheadHas(line, i, css_open_bracket)) {
+                } else if (i != group_index and std.mem.startsWith(u8, line[i..], css_open_bracket)) {
                     len += try changeSyntaxGroup(w, &group, .plain);
                     len += try w.write(css_open_bracket);
                     i += css_open_bracket.len - 1;
@@ -141,10 +136,10 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
             },
             .diff, .patch => {
                 if (group == .plain) {
-                    if (lookAheadHas(line, i, "index") or
-                        lookAheadHas(line, i, "diff") or
-                        lookAheadHas(line, i, "---") or
-                        lookAheadHas(line, i, "+++"))
+                    if (std.mem.startsWith(u8, line[i..], "index") or
+                        std.mem.startsWith(u8, line[i..], "diff") or
+                        std.mem.startsWith(u8, line[i..], "---") or
+                        std.mem.startsWith(u8, line[i..], "+++"))
                     {
                         len += try changeSyntaxGroup(w, &group, .comment);
                         group_index = i;
@@ -154,7 +149,7 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     } else if (i == 0 and line[i] == '+') {
                         len += try changeSyntaxGroup(w, &group, .addition);
                         group_index = i;
-                    } else if (lookAheadHas(line, i, diff_meta)) {
+                    } else if (std.mem.startsWith(u8, line[i..], diff_meta)) {
                         len += try changeSyntaxGroup(w, &group, .meta);
                         group_index = i;
                         len += try w.write(diff_meta);
@@ -171,7 +166,7 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
             },
             .go => {
                 if (group == .plain) {
-                    if (lookAheadHas(line, i, "//")) {
+                    if (std.mem.startsWith(u8, line[i..], "//")) {
                         len += try changeSyntaxGroup(w, &group, .comment);
                         group_index = i;
                     } else if (line[i] == '"') {
@@ -199,7 +194,7 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
             },
             .html => {
                 if (group == .plain) {
-                    if (lookAheadHas(line, i, html_open_comment)) {
+                    if (std.mem.startsWith(u8, line[i..], html_open_comment)) {
                         len += try changeSyntaxGroup(w, &group, .comment);
                         group_index = i;
                         len += try w.write("&lt;!--");
@@ -271,7 +266,7 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     }
                 }
 
-                if (group == .attr and i != group_index and lookAheadHas(line, i, " =")) {
+                if (group == .attr and i != group_index and std.mem.startsWith(u8, line[i..], " =")) {
                     len += try changeSyntaxGroup(w, &group, .plain);
                 }
 
@@ -283,7 +278,7 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
             },
             .js, .jsx, .ts, .tsx => {
                 if (group == .plain) {
-                    if (lookAheadHas(line, i, "//")) {
+                    if (std.mem.startsWith(u8, line[i..], "//")) {
                         len += try changeSyntaxGroup(w, &group, .comment);
                         group_index = i;
                     } else if (line[i] == '\'' or line[i] == '"' or line[i] == '`') {
@@ -347,7 +342,7 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
             },
             .lua => {
                 if (group == .plain) {
-                    if (lookAheadHas(line, i, "--")) {
+                    if (std.mem.startsWith(u8, line[i..], "--")) {
                         len += try changeSyntaxGroup(w, &group, .comment);
                         group_index = i;
                     } else if (line[i] == '"') {
@@ -369,11 +364,11 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                 }
             },
             .sh, .crontab => {
-                if (i == 0 and lookAheadHas(line, i, "#!")) {
+                if (i == 0 and std.mem.startsWith(u8, line[i..], "#!")) {
                     len += try changeSyntaxGroup(w, &group, .meta);
                     group_index = i;
                 } else if (group == .plain) {
-                    if (lookAheadHas(line, i, "#")) {
+                    if (std.mem.startsWith(u8, line[i..], "#")) {
                         len += try changeSyntaxGroup(w, &group, .comment);
                         group_index = i;
                     } else if (lang == .crontab and i == 0) {
@@ -406,7 +401,7 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
             },
             .vim => {
                 if (group == .plain) {
-                    if (lookAheadHas(line, i, "\" ")) {
+                    if (std.mem.startsWith(u8, line[i..], "\" ")) {
                         len += try changeSyntaxGroup(w, &group, .comment);
                     } else if (line[i] == '\'' or line[i] == '"') {
                         len += try changeSyntaxGroup(w, &group, .string);
@@ -448,7 +443,7 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
             },
             .zig => {
                 if (group == .plain) {
-                    if (lookAheadHas(line, i, "//")) {
+                    if (std.mem.startsWith(u8, line[i..], "//")) {
                         len += try changeSyntaxGroup(w, &group, .comment);
                         group_index = i;
                     } else if (line[i] == '\'' or line[i] == '"') {
