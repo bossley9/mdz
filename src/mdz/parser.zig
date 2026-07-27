@@ -278,6 +278,7 @@ fn closeBlocks(w: *Io.Writer, state: *ast.BlockState, depth: usize) CloseBlocksE
     while (state.items.items.len > depth) {
         const str = switch (state.items.pop().?) {
             .block_quote => "</blockquote>\n",
+            .aside => "</aside>\n",
             .unordered_list => "</li>\n</ul>\n",
             .ordered_list => "</li>\n</ol>\n",
             .paragraph => "</p>\n",
@@ -308,6 +309,13 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
             .block_quote => {
                 if (std.mem.startsWith(u8, line, "> ")) {
                     line = line[2..];
+                } else {
+                    len += try closeBlocks(w, state, depth);
+                }
+            },
+            .aside => {
+                if (std.mem.startsWith(u8, line, "a> ")) {
+                    line = line[3..];
                 } else {
                     len += try closeBlocks(w, state, depth);
                 }
@@ -416,6 +424,10 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
         try state.items.appendBounded(.block_quote);
         len += try w.write("<blockquote>\n");
         return len + try processLine(line[2..], w, state, depth + 1);
+    } else if (std.mem.startsWith(u8, line, "a> ")) { // aside
+        try state.items.appendBounded(.aside);
+        len += try w.write("<aside>\n");
+        return len + try processLine(line[3..], w, state, depth + 1);
     } else if (std.mem.startsWith(u8, line, "* ")) { // unordered list
         try state.items.appendBounded(.unordered_list);
         len += try w.write("<ul>\n<li>");

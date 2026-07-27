@@ -679,6 +679,41 @@ test "4.2.7" {
 }
 // ```
 
+// ### 4.3. Asides
+
+// An <dfn>aside marker</dfn> consists of the characters `a> ` followed by content. An aside marker indicates that the following content should be nested within an aside block. The trailing space character in the marker is required. Aside blocks follow all the same rules as block quotes.
+
+// ```zig
+test "4.3.1" {
+    const input =
+        \\a> ## title
+        \\a> 
+        \\a> content
+        \\a> here
+        \\
+        \\a> 
+        \\
+        \\a> a> hello
+    ;
+    const output =
+        \\<aside>
+        \\<h2 id="title"><a href="#title">title</a></h2>
+        \\<p>content
+        \\here</p>
+        \\</aside>
+        \\<aside>
+        \\</aside>
+        \\<aside>
+        \\<aside>
+        \\<p>hello</p>
+        \\</aside>
+        \\</aside>
+        \\
+    ;
+    try th.expectParseMDZ(input, output);
+}
+// ```
+
 // ## 5. Leaf Blocks
 
 // ### 5.1. Paragraphs

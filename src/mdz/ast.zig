@@ -2,6 +2,7 @@ const std = @import("std");
 
 pub const Block = enum(u4) {
     // line blocks
+    aside,
     block_quote,
     unordered_list,
     ordered_list,
