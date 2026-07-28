@@ -11,7 +11,7 @@ pub fn expectParseMDZ(input: []const u8, comptime expected: []const u8) !void {
     var writer = Io.Writer.fixed(&expected_buf);
 
     const len = try mod.parseMDZ(&reader, &writer);
-    try std.testing.expectEqualStrings(expected_buf[0..len], expected);
+    try std.testing.expectEqualStrings(expected, expected_buf[0..len]);
 }
 
 pub fn expectCodeHighlight(
@@ -31,5 +31,5 @@ pub fn expectCodeHighlight(
         else => return e,
     }
 
-    try std.testing.expectEqualStrings(expected_buf[0..len], expected);
+    try std.testing.expectEqualStrings(expected, expected_buf[0..len]);
 }

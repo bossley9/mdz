@@ -14,10 +14,7 @@ export fn slugifyWasm(input_addr: [*]u8, input_len: usize) usize {
     const len = slugify(input, &output);
 
     // write result to contiguous memory, overwriting input
-    var i: usize = 0;
-    while (i < len) : (i += 1) {
-        input_addr[i] = output[i];
-    }
+    @memcpy(input_addr, output[0..len]);
     return len;
 }
 
@@ -44,10 +41,7 @@ export fn parseMDZWasm(input_addr: [*]u8, input_len: usize) usize {
     };
 
     // write result to contiguous memory, overwriting input
-    var i: usize = 0;
-    while (i < len) : (i += 1) {
-        input_addr[i] = output[i];
-    }
+    @memcpy(input_addr, output[0..len]);
     return len;
 }
 

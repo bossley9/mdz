@@ -1740,7 +1740,7 @@ test "6.3.5" {
 
 // A footnote citation begins with `[^`, contains a reference number, then ends with a `]` character. A footnote reference starts on its own line and begins with `[^`, contains a matching reference number, then uses a `]: ` marker to indicate the reference content may start. Markdown-Z performs no checking to ensure that references are all accounted for - it is the responsibility of the user to ensure that all references use the same characters to link to each other.
 
-// A footnote citation reference number must be between 0 and 127. Inline content is not allowed within a footnote citation, but it is allowed within a footnote reference.
+// A footnote citation reference number must be between 0 and 63. Inline content is not allowed within a footnote citation, but it is allowed within a footnote reference.
 
 // ```zig
 test "6.4.1" {

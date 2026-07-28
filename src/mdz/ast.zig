@@ -36,12 +36,14 @@ pub const CodeLanguage = enum {
     go,
     html,
     ini,
+    javascript,
     js,
     json,
     jsx,
     lua,
     patch,
     plaintext,
+    ruby,
     sh,
     ts,
     tsx,
@@ -51,11 +53,11 @@ pub const CodeLanguage = enum {
 };
 
 pub const BlockState = struct {
-    items: std.ArrayList(Block),
-    flags: FlagField,
     /// stored as a dictionary where the index represents the numeric
     /// citation symbol and the value represents the number of citations
-    footnotes: [128]u8,
+    footnotes: [64]u8,
+    items: std.ArrayList(Block),
+    flags: FlagField,
     lang: CodeLanguage,
 
     pub fn init(stack_buffer: []Block) BlockState {

@@ -41,7 +41,11 @@ pub fn printEscapedHtml(c: u8, w: *Io.Writer) Io.Writer.Error!usize {
     };
 }
 
-const ProcessInlinesError = Io.Writer.Error || std.fmt.ParseIntError || std.fmt.BufPrintError || GenericMDZError;
+const ProcessInlinesError =
+    Io.Writer.Error ||
+    std.fmt.ParseIntError ||
+    std.fmt.BufPrintError ||
+    GenericMDZError;
 
 fn processInlines(line: []u8, w: *Io.Writer, state: *ast.BlockState) ProcessInlinesError!usize {
     var len: usize = 0;
@@ -293,7 +297,26 @@ fn closeBlocks(w: *Io.Writer, state: *ast.BlockState, depth: usize) CloseBlocksE
     return len;
 }
 
-const ProcessLineError = Io.Writer.Error || ProcessInlinesError || GenericMDZError;
+/// Line prefixes only 2-3 characters long
+const LinePrefix = enum {
+    @"> ",
+    @"a> ",
+    @"* ",
+    @"1. ",
+    @"```",
+    @"===",
+    @"# ",
+    @"## ",
+    @"[^",
+    @"| ",
+    @"---",
+    nomatch,
+};
+
+const ProcessLineError =
+    Io.Writer.Error ||
+    ProcessInlinesError ||
+    GenericMDZError;
 
 fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, starting_depth: usize) ProcessLineError!usize {
     var depth = starting_depth;
@@ -307,14 +330,14 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
     while (depth < state.items.items.len) : (depth += 1) {
         switch (state.items.items[depth]) {
             .block_quote => {
-                if (std.mem.startsWith(u8, line, "> ")) {
+                if (std.mem.startsWith(u8, line, @tagName(LinePrefix.@"> "))) {
                     line = line[2..];
                 } else {
                     len += try closeBlocks(w, state, depth);
                 }
             },
             .aside => {
-                if (std.mem.startsWith(u8, line, "a> ")) {
+                if (std.mem.startsWith(u8, line, @tagName(LinePrefix.@"a> "))) {
                     line = line[3..];
                 } else {
                     len += try closeBlocks(w, state, depth);
@@ -323,7 +346,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
             .unordered_list => {
                 if (std.mem.startsWith(u8, line, "  ")) {
                     line = line[2..];
-                } else if (std.mem.startsWith(u8, line, "* ")) {
+                } else if (std.mem.startsWith(u8, line, @tagName(LinePrefix.@"* "))) {
                     len += try closeBlocks(w, state, depth + 1);
                     len += try w.write("</li>\n<li>");
                     line = line[2..];
@@ -334,7 +357,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
             .ordered_list => {
                 if (std.mem.startsWith(u8, line, "   ")) {
                     line = line[3..];
-                } else if (std.mem.startsWith(u8, line, "1. ")) {
+                } else if (std.mem.startsWith(u8, line, @tagName(LinePrefix.@"1. "))) {
                     len += try closeBlocks(w, state, depth + 1);
                     len += try w.write("</li>\n<li>");
                     line = line[3..];
@@ -352,7 +375,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
                 return len;
             },
             .code_block => {
-                if (std.mem.startsWith(u8, line, "```")) {
+                if (std.mem.startsWith(u8, line, @tagName(LinePrefix.@"```"))) {
                     len += try closeBlocks(w, state, depth);
                 } else {
                     len += try highlight.highlight_code_line(w, line, state.lang);
@@ -360,7 +383,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
                 return len;
             },
             .pre_block => {
-                if (std.mem.startsWith(u8, line, "===")) {
+                if (std.mem.startsWith(u8, line, @tagName(LinePrefix.@"==="))) {
                     len += try closeBlocks(w, state, depth);
                 } else {
                     len += try w.write(line);
@@ -378,7 +401,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
                 return len;
             },
             .footnote_reference => {
-                if (std.mem.startsWith(u8, line, "[^")) {
+                if (std.mem.startsWith(u8, line, @tagName(LinePrefix.@"[^"))) {
                     return len + try processFootnoteReference(line, w, state);
                 } else {
                     len += try closeBlocks(w, state, depth);
@@ -390,7 +413,7 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
                     @branchHint(.unlikely);
                     return len;
                 }
-                if (std.mem.startsWith(u8, line, "| ")) {
+                if (std.mem.startsWith(u8, line, @tagName(LinePrefix.@"| "))) {
                     len += try w.write("<tr>\n");
                     while (line.len > 1) {
                         len += try w.write("<td>");
@@ -420,90 +443,116 @@ fn processLine(starting_line: []u8, w: *Io.Writer, state: *ast.BlockState, start
     // create new blocks
     //
 
-    if (std.mem.startsWith(u8, line, "> ")) { // block quote
-        try state.items.appendBounded(.block_quote);
-        len += try w.write("<blockquote>\n");
-        return len + try processLine(line[2..], w, state, depth + 1);
-    } else if (std.mem.startsWith(u8, line, "a> ")) { // aside
-        try state.items.appendBounded(.aside);
-        len += try w.write("<aside>\n");
-        return len + try processLine(line[3..], w, state, depth + 1);
-    } else if (std.mem.startsWith(u8, line, "* ")) { // unordered list
-        try state.items.appendBounded(.unordered_list);
-        len += try w.write("<ul>\n<li>");
-        return len + try processLine(line[2..], w, state, depth + 1);
-    } else if (std.mem.startsWith(u8, line, "1. ")) { // ordered list
-        try state.items.appendBounded(.ordered_list);
-        len += try w.write("<ol>\n<li>");
-        return len + try processLine(line[3..], w, state, depth + 1);
-    } else if (std.mem.startsWith(u8, line, "```")) { // code block
-        try state.items.appendBounded(.code_block);
-        len += try w.write("<pre><code");
-        const lang = line[3..];
-        if (lang.len > 0 and !std.mem.eql(u8, lang, "plaintext")) {
-            var buf: [64]u8 = undefined;
-            const fmt = try std.fmt.bufPrint(&buf, " class=\"language-{s}\"", .{lang});
-            len += try w.write(fmt);
-        }
-        state.lang = std.meta.stringToEnum(ast.CodeLanguage, lang) orelse .plaintext;
-        return len + try w.write(">");
-    } else if (std.mem.startsWith(u8, line, "===")) { // preformatted block
-        try state.items.appendBounded(.pre_block);
-        return len + try w.write("<pre>");
-    } else if (std.mem.startsWith(u8, line, "###### ")) { // heading 6
-        return len + try processHeading(6, line, w, state);
-    } else if (std.mem.startsWith(u8, line, "##### ")) { // heading 5
-        return len + try processHeading(5, line, w, state);
-    } else if (std.mem.startsWith(u8, line, "#### ")) { // heading 4
-        return len + try processHeading(4, line, w, state);
-    } else if (std.mem.startsWith(u8, line, "### ")) { // heading 3
-        return len + try processHeading(3, line, w, state);
-    } else if (std.mem.startsWith(u8, line, "## ")) { // heading 2
-        return len + try processHeading(2, line, w, state);
-    } else if (std.mem.startsWith(u8, line, "# ")) { // heading 1
-        return len + try processHeading(1, line, w, state);
-    } else if (std.mem.startsWith(u8, line, "[^")) { // footnote reference
-        try state.items.appendBounded(.footnote_reference);
-        len += try w.write("<section class=\"footnotes\">\n<ol class=\"footnotes-list\">\n");
-        return len + try processFootnoteReference(line, w, state);
-    } else if (std.mem.startsWith(u8, line, "| ")) { // table
-        try state.items.appendBounded(.table);
-        len += try w.write("<table>\n<thead>\n<tr>\n");
-        while (line.len > 1) {
-            len += try w.write("<th>");
-            line = line[2..];
-            const col_end = std.mem.find(u8, line, " |") orelse return error.InvalidMDZSyntax;
-            len += try processInlines(line[0..col_end], w, state);
-            line = line[col_end + 1 ..];
-            len += try w.write("</th>\n");
-        }
-        return len + try w.write("</tr>\n</thead>\n<tbody>\n");
-    } else if (std.mem.eql(u8, line, "---")) { // thematic break
-        return len + try w.write("<hr />\n");
-    } else if (line.len > 1 and line[0] == '<' and switch (line[1]) {
-        'A'...'Z', 'a'...'z', '/' => true,
-        else => false,
-    }) { // HTML block
-        const block = state.items.getLastOrNull() orelse .paragraph; // any block to fall in else
-        switch (block) {
-            .ordered_list, .unordered_list => {},
-            else => {
-                try state.items.appendBounded(.html_block);
-                return len + try processLine(line, w, state, depth);
-            },
-        }
-    } else { // paragraph
-        const block = state.items.getLastOrNull() orelse .table; // any block to fall in else
-        switch (block) {
-            .unordered_list,
-            .ordered_list,
-            => try state.items.appendBounded(.paragraph_hidden),
-            .paragraph, .paragraph_hidden => unreachable,
-            else => {
-                try state.items.appendBounded(.paragraph);
-                len += try w.write("<p>");
-            },
-        }
+    var line_prefix: LinePrefix = if (line.len >= 3)
+        std.meta.stringToEnum(LinePrefix, line[0..3]) orelse .nomatch
+    else
+        .nomatch;
+
+    if (line_prefix == .nomatch and line.len >= 2) {
+        line_prefix = std.meta.stringToEnum(LinePrefix, line[0..2]) orelse .nomatch;
+    }
+
+    switch (line_prefix) {
+        .@"> " => {
+            try state.items.appendBounded(.block_quote);
+            len += try w.write("<blockquote>\n");
+            return len + try processLine(line[2..], w, state, depth + 1);
+        },
+        .@"a> " => {
+            try state.items.appendBounded(.aside);
+            len += try w.write("<aside>\n");
+            return len + try processLine(line[3..], w, state, depth + 1);
+        },
+        .@"* " => {
+            try state.items.appendBounded(.unordered_list);
+            len += try w.write("<ul>\n<li>");
+            return len + try processLine(line[2..], w, state, depth + 1);
+        },
+        .@"1. " => {
+            try state.items.appendBounded(.ordered_list);
+            len += try w.write("<ol>\n<li>");
+            return len + try processLine(line[3..], w, state, depth + 1);
+        },
+        .@"```" => {
+            try state.items.appendBounded(.code_block);
+            len += try w.write("<pre><code");
+
+            state.lang = std.meta.stringToEnum(ast.CodeLanguage, line[3..]) orelse .plaintext;
+
+            if (state.lang != .plaintext) {
+                const tag_name = @tagName(state.lang);
+                try w.print(" class=\"language-{s}\"", .{tag_name});
+                len += 18 + tag_name.len;
+            }
+
+            return len + try w.write(">");
+        },
+        .@"===" => {
+            try state.items.appendBounded(.pre_block);
+            return len + try w.write("<pre>");
+        },
+        .@"# " => return len + try processHeading(1, line, w, state),
+        .@"## " => return len + try processHeading(2, line, w, state),
+        .@"[^" => {
+            try state.items.appendBounded(.footnote_reference);
+            len += try w.write("<section class=\"footnotes\">\n<ol class=\"footnotes-list\">\n");
+            return len + try processFootnoteReference(line, w, state);
+        },
+        .@"| " => {
+            try state.items.appendBounded(.table);
+            len += try w.write("<table>\n<thead>\n<tr>\n");
+            while (line.len > 1) {
+                len += try w.write("<th>");
+                line = line[2..];
+                const col_end = std.mem.find(u8, line, " |") orelse return error.InvalidMDZSyntax;
+                len += try processInlines(line[0..col_end], w, state);
+                line = line[col_end + 1 ..];
+                len += try w.write("</th>\n");
+            }
+            return len + try w.write("</tr>\n</thead>\n<tbody>\n");
+        },
+        .@"---" => return len + try w.write("<hr />\n"),
+        .nomatch => {
+            if (std.mem.startsWith(u8, line, "#")) {
+                @branchHint(.unlikely);
+                if (std.mem.startsWith(u8, line, "###### ")) { // heading 6
+                    return len + try processHeading(6, line, w, state);
+                } else if (std.mem.startsWith(u8, line, "##### ")) { // heading 5
+                    return len + try processHeading(5, line, w, state);
+                } else if (std.mem.startsWith(u8, line, "#### ")) { // heading 4
+                    return len + try processHeading(4, line, w, state);
+                } else if (std.mem.startsWith(u8, line, "### ")) { // heading 3
+                    return len + try processHeading(3, line, w, state);
+                }
+            }
+
+            if (line.len > 1 and line[0] == '<' and switch (line[1]) {
+                'A'...'Z', 'a'...'z', '/' => true,
+                else => false,
+            }) { // HTML block
+                @branchHint(.unlikely);
+                const block = state.items.getLastOrNull() orelse .paragraph; // any block to fall in else
+                switch (block) {
+                    .ordered_list, .unordered_list => {},
+                    else => {
+                        try state.items.appendBounded(.html_block);
+                        return len + try processLine(line, w, state, depth);
+                    },
+                }
+            } else { // paragraph
+                const block = state.items.getLastOrNull() orelse .table; // arbitrary block to fall in else
+                switch (block) {
+                    .unordered_list,
+                    .ordered_list,
+                    => try state.items.appendBounded(.paragraph_hidden),
+                    .paragraph, .paragraph_hidden => unreachable,
+                    else => {
+                        try state.items.appendBounded(.paragraph);
+                        len += try w.write("<p>");
+                    },
+                }
+            }
+        },
     }
 
     //
@@ -525,11 +574,9 @@ pub fn parseMDZ(r: *Io.Reader, w: *Io.Writer) ParseMDZError!usize {
 
     while (takeNewlineExclusive(r)) |line| {
         len += try processLine(line, w, &state, 0);
-    } else |e| switch (e) {
+    } else |err| switch (err) {
         Io.Reader.DelimiterError.EndOfStream => {}, // end of input
-        Io.Reader.DelimiterError.ReadFailed,
-        Io.Reader.DelimiterError.StreamTooLong,
-        => |err| return err,
+        else => |e| return e,
     }
     len += try closeBlocks(w, &state, 0); // close remaining blocks
 

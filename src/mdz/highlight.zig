@@ -276,7 +276,7 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     len += try changeSyntaxGroup(w, &group, .plain);
                 }
             },
-            .js, .jsx, .ts, .tsx => {
+            .javascript, .js, .jsx, .ts, .tsx => {
                 if (group == .plain) {
                     if (std.mem.startsWith(u8, line[i..], "//")) {
                         len += try changeSyntaxGroup(w, &group, .comment);
@@ -496,7 +496,7 @@ pub fn highlight_code_line(w: *Io.Writer, line: []u8, lang: ast.CodeLanguage) Io
                     len += try changeSyntaxGroup(w, &group, .plain);
                 }
             },
-            .plaintext => len += try parser.printEscapedHtml(line[i], w),
+            .ruby, .plaintext => len += try parser.printEscapedHtml(line[i], w),
         }
     }
 
