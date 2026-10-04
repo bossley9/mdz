@@ -18,7 +18,7 @@ pub fn build(b: *std.Build) !void {
             .root_source_file = b.path("./src/main.zig"),
             .target = target,
             .optimize = optimize,
-            .valgrind = optimize == .Debug,
+            .valgrind = optimize == .debug,
             .imports = &.{
                 .{ .name = "mdz", .module = mdz },
             },
@@ -35,7 +35,7 @@ pub fn build(b: *std.Build) !void {
                 .cpu_arch = .wasm32,
                 .os_tag = .freestanding,
             }),
-            .optimize = .ReleaseSmall,
+            .optimize = .small,
         }),
     });
     wasm.rdynamic = true;
@@ -46,17 +46,16 @@ pub fn build(b: *std.Build) !void {
 
     // run
     const run_cmd = b.addRunArtifact(exe);
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
-    }
+    run_cmd.addPassthruArgs();
     const run_step = b.step("run", "Run the debug app");
     run_step.dependOn(&run_cmd.step);
 
     // test
     const test_step = b.step("test", "Run tests");
+    const test_filters = b.option([][]const u8, "test_filter", "Filter for tests") orelse &.{};
     const test_exe = b.addTest(.{
         .root_module = mdz,
-        .filters = b.args orelse &.{},
+        .filters = test_filters,
     });
     const test_cmd = b.addRunArtifact(test_exe);
     test_step.dependOn(&test_cmd.step);

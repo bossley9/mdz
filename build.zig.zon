@@ -2,7 +2,7 @@
     .name = .mdz,
     .version = "1.6.0",
     .fingerprint = 0xe0fb7e028338edd,
-    .minimum_zig_version = "0.16.0",
+    .minimum_zig_version = "0.17.0",
     .paths = .{
         "LICENSE.txt",
         "build.zig",
