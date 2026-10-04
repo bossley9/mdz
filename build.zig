@@ -1,7 +1,6 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) !void {
-    const main_path = b.path("./src/main.zig");
     const mod_path = b.path("./src/root.zig");
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -16,9 +15,10 @@ pub fn build(b: *std.Build) !void {
     const exe = b.addExecutable(.{
         .name = "mdz",
         .root_module = b.createModule(.{
-            .root_source_file = main_path,
+            .root_source_file = b.path("./src/main.zig"),
             .target = target,
             .optimize = optimize,
+            .valgrind = optimize == .Debug,
             .imports = &.{
                 .{ .name = "mdz", .module = mdz },
             },
@@ -45,26 +45,12 @@ pub fn build(b: *std.Build) !void {
     wasm_step.dependOn(&wasm_exe.step);
 
     // run
-    const debug_exe = b.addExecutable(.{
-        .name = "mdz-debug",
-        .root_module = b.createModule(.{
-            .root_source_file = main_path,
-            .target = target,
-            .optimize = .Debug,
-            .valgrind = true,
-            .imports = &.{
-                .{ .name = "mdz", .module = mdz },
-            },
-        }),
-    });
-    const debug_exe_art = b.addInstallArtifact(debug_exe, .{});
-    const run_debug_cmd = b.addRunArtifact(debug_exe);
+    const run_cmd = b.addRunArtifact(exe);
     if (b.args) |args| {
-        run_debug_cmd.addArgs(args);
+        run_cmd.addArgs(args);
     }
-    const run_debug_step = b.step("run", "Run the debug app");
-    run_debug_step.dependOn(&run_debug_cmd.step);
-    run_debug_step.dependOn(&debug_exe_art.step);
+    const run_step = b.step("run", "Run the debug app");
+    run_step.dependOn(&run_cmd.step);
 
     // test
     const test_step = b.step("test", "Run tests");
@@ -77,5 +63,5 @@ pub fn build(b: *std.Build) !void {
 
     // check
     const check = b.step("check", "Check if mdz compiles");
-    check.dependOn(&debug_exe.step);
+    check.dependOn(&exe.step);
 }
